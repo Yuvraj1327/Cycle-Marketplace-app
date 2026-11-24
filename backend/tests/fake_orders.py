@@ -300,3 +300,77 @@ class FakeOrderSQL:
                 "commission_earned": sum(v["commission_amount"] for v in self.rows("vendor_orders") if v["status"] == "delivered"),
                 "cod_outstanding": sum(p["amount"] for p in self.rows("payments") if p["method"] == "cod" and p["status"] == "pending"),
                 "orders_placed": len(self.rows("orders")), "orders_completed": sum(1 for o in self.rows("orders") if o["status"] == "completed")}
+
+    def vendor_dashboard_summary(self, p_vendor):
+        """Python twin of public.vendor_dashboard_summary (the real one is exercised against PostgreSQL in test_sql_integrity.py)."""
+        def by(rows, key="status"):
+            out = {}
+            for r in rows:
+                out[r[key]] = out.get(r[key], 0) + 1
+            return out
+        vos = [v for v in self.rows("vendor_orders") if v["vendor_id"] == p_vendor and v.get("released_at")]
+        done = [v for v in self.rows("vendor_orders") if v["vendor_id"] == p_vendor and v["status"] == "delivered"]
+        prods = [p for p in self.rows("products") if p["vendor_id"] == p_vendor]
+        books = [b for b in self.rows("service_bookings") if b["vendor_id"] == p_vendor]
+        sets = {}
+        for s in (s for s in self.rows("vendor_settlements") if s["vendor_id"] == p_vendor):
+            t = sets.setdefault(s["status"], {"count": 0, "gross": 0, "commission": 0, "deductions": 0, "net": 0})
+            t["count"] += 1
+            for k, c in (("gross", "gross_amount"), ("commission", "commission_amount"), ("deductions", "deductions_amount"), ("net", "net_amount")):
+                t[k] += float(s[c])
+        return {"orders": {"total": len(vos), "by_status": by(vos), "sales_total": sum(float(v["subtotal"]) for v in done),
+                           "commission_total": sum(float(v.get("commission_amount") or 0) for v in done)},
+                "products": {"total": len(prods), "active": sum(1 for p in prods if p.get("is_active", True) and p.get("approval_status") == "approved"),
+                             "pending_approval": sum(1 for p in prods if p.get("approval_status") == "pending"),
+                             "rejected": sum(1 for p in prods if p.get("approval_status") == "rejected"),
+                             "out_of_stock": sum(1 for p in prods if p.get("stock_quantity") == 0)},
+                "bookings": {"total": len(books), "by_status": by(books),
+                             "completed_value": sum(float(b.get("final_price") or b["estimated_price"]) for b in books if b["status"] == "completed")},
+                "settlements": sets}
+
+    def admin_entity_counts(self, p_kind, p_ids):
+        out = {}
+        for i in p_ids:
+            if p_kind == "customer":
+                out[i] = {"orders": sum(1 for o in self.rows("orders") if o["customer_id"] == i), "bookings": sum(1 for b in self.rows("service_bookings") if b["customer_id"] == i)}
+            else:
+                out[i] = {"products": sum(1 for p in self.rows("products") if p["vendor_id"] == i),
+                          "orders": sum(1 for v in self.rows("vendor_orders") if v["vendor_id"] == i and v.get("released_at")),
+                          "bookings": sum(1 for b in self.rows("service_bookings") if b["vendor_id"] == i)}
+        return out
+
+    def admin_dashboard_summary(self, p_from, p_to):
+        """Python twin of public.admin_dashboard_summary (the real one is exercised against PostgreSQL in test_sql_integrity.py)."""
+        from datetime import date, timedelta
+
+        def by(rows, key):
+            o = {}
+            for r in rows:
+                o[r[key]] = o.get(r[key], 0) + 1
+            return o
+
+        def day(r):
+            return str(r["created_at"])[:10]
+
+        d0, d1 = date.fromisoformat(p_from), date.fromisoformat(p_to)
+        days = [(d0 + timedelta(days=n)).isoformat() for n in range((d1 - d0).days + 1)]
+        customers = [p for p in self.rows("profiles") if p["role"] == "customer"]
+        vendors = self.rows("vendor_profiles")
+        orders, books = self.rows("orders"), self.rows("service_bookings")
+        owners = {p["id"]: p for p in self.rows("profiles")}
+        return {
+            "period": {"from": p_from, "to": p_to},
+            "customers": {"total": len(customers), "by_status": by(customers, "status"), "new_in_period": sum(1 for c in customers if day(c) in days)},
+            "vendors": {"total": len(vendors), "by_verification": by(vendors, "verification_status"),
+                        "by_account_status": by([{"s": owners[v["user_id"]]["status"]} for v in vendors if v["user_id"] in owners], "s"),
+                        "new_in_period": sum(1 for v in vendors if day(v) in days)},
+            "orders": {"total": len(orders), "by_status": by(orders, "status"),
+                       "value_completed": sum(float(o["total_amount"]) for o in orders if o["status"] == "completed"),
+                       "value_confirmed": sum(float(o["total_amount"]) for o in orders if o["status"] == "confirmed")},
+            "bookings": {"total": len(books), "by_status": by(books, "status")},
+            "series": {
+                "orders": [{"day": d, "count": sum(1 for o in orders if day(o) == d), "value": sum(float(o["total_amount"]) for o in orders if day(o) == d and o["status"] != "cancelled")} for d in days],
+                "bookings": [{"day": d, "count": sum(1 for b in books if day(b) == d)} for d in days],
+                "customers": [{"day": d, "count": sum(1 for c in customers if day(c) == d)} for d in days],
+                "vendors": [{"day": d, "count": sum(1 for v in vendors if day(v) == d)} for d in days]},
+        }

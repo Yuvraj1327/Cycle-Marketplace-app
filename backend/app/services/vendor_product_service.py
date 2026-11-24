@@ -52,10 +52,10 @@ class VendorProductService:
         return self._admin_products.modify(product_id, {"approval_status": "approved", "review_notes": "Auto-approved (listing approval disabled)"}) or {}
 
     # ---------------- reads ----------------
-    def list(self, vendor: ApprovedVendor, *, q, approval_status, is_active, category_id, page, limit) -> dict:
+    def list(self, vendor: ApprovedVendor, *, q, approval_status, is_active, category_id, page, limit, product_type=None, in_stock=None) -> dict:
         from app.core.search import sanitize_term
         f = ProductFilters(q=sanitize_term(q) or None if q else None, vendor_id=vendor.vendor["id"], approval_status=approval_status,
-                           is_active=is_active, category_ids=[str(category_id)] if category_id else None)
+                           is_active=is_active, category_ids=[str(category_id)] if category_id else None, product_type=product_type, in_stock=in_stock)
         rows, total = self.products.search(f, sort="newest", page=page, limit=limit)
         ctx = _catalog.load_context(self.db, rows)
         return _catalog.page([_catalog.owner_view(r, ctx) for r in rows], total, page, limit)

@@ -81,6 +81,27 @@ class CheckoutService:
                 raise
         return self._respond(user, order, payment, replay=False, client_payload=client_payload)
 
+    # ------------------------------------------------------------------------------------------------ read-only helpers for the apps
+    def options(self) -> dict:
+        cfg = load_settings(self.settings.get_many(ALL_KEYS))
+        configured = self.provider.is_configured()
+        rule = cfg.delivery
+        return {"cod_enabled": cfg.cod_enabled, "online_enabled": cfg.online_enabled and configured, "online_provider_configured": configured,
+                "multi_vendor_allowed": cfg.multi_vendor_allowed, "currency": self._currency(),
+                "delivery_charge": {"amount": rule.amount, "free_above": rule.free_above, "per": rule.per} if rule else None}
+
+    def preview(self, user: CurrentUser, body: CheckoutRequest) -> dict:
+        """Same validation and arithmetic as checkout (shared code), but nothing is written or reserved."""
+        cfg = load_settings(self.settings.get_many(ALL_KEYS))
+        body = body.model_copy(update={"expected_total": None})
+        address = self._delivery_address(user, body)
+        lines = self._select_lines(user, body, cfg)
+        p = self._build_payload(user, body, cfg, lines, address, "preview-key", "preview")
+        return {"subtotal": p["subtotal"], "delivery_charge": p["delivery_charge"], "discount_amount": p["discount_amount"], "total_amount": p["total_amount"],
+                "coupon_code": p["coupon_code"], "item_count": sum(i["quantity"] for v in p["vendor_orders"] for i in v["items"]),
+                "vendors": [{"vendor_id": v["vendor_id"], "vendor_name": v["vendor_name"], "subtotal": v["subtotal"], "delivery_charge": v["delivery_charge"],
+                             "discount_amount": v["discount_amount"], "total_amount": v["total_amount"], "item_count": sum(i["quantity"] for i in v["items"])} for v in p["vendor_orders"]]}
+
     # ------------------------------------------------------------------------------------------------ steps
     def _request_hash(self, body: CheckoutRequest) -> str:
         identity = {"address": str(body.delivery_address_id), "method": body.payment_method.value, "coupon": (body.coupon_code or "").upper(),

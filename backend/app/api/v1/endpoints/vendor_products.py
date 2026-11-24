@@ -5,6 +5,7 @@ from postgrest import SyncPostgrestClient
 
 from app.api.v1.responses import E400, E404, E409, E422, PROTECTED
 from app.core.dependencies import ApprovedVendor, get_admin_db, get_user_db, require_approved_vendor
+from app.schemas.category import CategoryKind
 from app.schemas.common import Page
 from app.schemas.product import (
     ApprovalStatus,
@@ -55,11 +56,12 @@ def create_product(body: ProductCreate, vendor: ApprovedVendor = Depends(require
 )
 def list_my_products(
     q: str | None = Query(None, max_length=100), approval_status: ApprovalStatus | None = None, is_active: bool | None = None,
-    category_id: UUID | None = None, page: int = Query(1, ge=1, le=10_000), limit: int = Query(20, ge=1, le=100),
+    category_id: UUID | None = None, product_type: CategoryKind | None = None, in_stock: bool | None = None,
+    page: int = Query(1, ge=1, le=10_000), limit: int = Query(20, ge=1, le=100),
     vendor: ApprovedVendor = Depends(require_approved_vendor), service: VendorProductService = Depends(get_service),
 ):
     return service.list(vendor, q=q, approval_status=approval_status.value if approval_status else None, is_active=is_active,
-                        category_id=category_id, page=page, limit=limit)
+                        category_id=category_id, product_type=product_type.value if product_type else None, in_stock=in_stock, page=page, limit=limit)
 
 
 @router.get("/{product_id}", response_model=VendorProductOut, summary="Get my product", description=_APPROVED + " Another vendor's product returns 404.",

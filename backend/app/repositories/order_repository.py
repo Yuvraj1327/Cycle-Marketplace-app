@@ -1,6 +1,6 @@
 from postgrest.types import CountMethod
 
-from app.repositories.base import BaseRepository, Row
+from app.repositories.base import BaseRepository, Row, day_range
 
 
 class OrderRepository(BaseRepository):
@@ -67,11 +67,15 @@ class OrderRepository(BaseRepository):
     def history(self, order_id: str) -> list[Row]:
         return self._run(self.client.table("order_status_history").select("*").eq("order_id", order_id).order("created_at").order("id")).data
 
+    def vendor_order_history(self, vendor_order_id: str) -> list[Row]:
+        return self._run(self.client.table("order_status_history").select("*").eq("vendor_order_id", vendor_order_id).order("created_at").order("id")).data
+
     # ---- vendor side
-    def list_vendor_orders(self, vendor_id: str, *, status: str | None, page: int, limit: int) -> tuple[list[Row], int]:
+    def list_vendor_orders(self, vendor_id: str, *, status: str | None, page: int, limit: int, date_from=None, date_to=None) -> tuple[list[Row], int]:
         q = self.client.table("vendor_orders").select("*", count=CountMethod.exact).eq("vendor_id", vendor_id).not_.is_("released_at", "null")
         if status:
             q = q.eq("status", status)
+        q = day_range(q, "created_at", date_from, date_to)
         offset = (page - 1) * limit
         res = self._run(q.order("created_at", desc=True).order("id").range(offset, offset + limit - 1))
         return res.data, res.count or 0

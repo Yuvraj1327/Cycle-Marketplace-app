@@ -48,11 +48,15 @@ TAGS = [
     {"name": "Admin - Service bookings", "description": "**Protected - admin only.**"},
     {"name": "Admin - Pickup/drop-off", "description": "**Protected - admin only.** Coordination, not GPS tracking."},
     {"name": "Admin - Support", "description": "**Protected - admin only.** Complaints and disputes."},
+    {"name": "Admin - Dashboard", "description": "**Protected - admin only.** Platform summary for the admin console."},
+    {"name": "Admin - Customers", "description": "**Protected - admin only.** Customer accounts (status changes only; nothing is deleted)."},
+    {"name": "Admin - Vendors", "description": "**Protected - admin only.** Vendor applications, approval/rejection, suspension and account status."},
+    {"name": "Notifications", "description": "**Protected.** In-app notifications (list, mark read). Push delivery is a later step."},
 ]
 
 app = FastAPI(
     title=settings.app_name,
-    version="0.6.0",
+    version="0.9.0",
     description=(
         "Cycle Marketplace backend.\n\n"
         "**Authentication:** sign in with Supabase Auth (email or phone) in the client, then send "

@@ -33,3 +33,42 @@ class PricePreview(BaseModel):
     delivery_charge: Money
     discount_amount: Money
     total_amount: Money
+
+
+class DeliveryRuleOut(BaseModel):
+    amount: Money
+    free_above: Money | None
+    per: str
+
+
+class CheckoutOptions(BaseModel):
+    """What the checkout screen may offer, from platform settings + provider configuration. Read-only; nothing is reserved."""
+
+    cod_enabled: bool
+    online_enabled: bool                  # enabled by the admin AND a payment provider is configured
+    online_provider_configured: bool
+    multi_vendor_allowed: bool
+    delivery_charge: DeliveryRuleOut | None   # null = the platform has no delivery charge configured
+    currency: str
+
+
+class PreviewVendor(BaseModel):
+    vendor_id: UUID
+    vendor_name: str | None
+    subtotal: Money
+    delivery_charge: Money
+    discount_amount: Money
+    total_amount: Money
+    item_count: int
+
+
+class CheckoutPreview(BaseModel):
+    """Server-computed totals for the CURRENT cart. Not binding: the real checkout recomputes and re-validates everything."""
+
+    subtotal: Money
+    delivery_charge: Money
+    discount_amount: Money
+    total_amount: Money
+    coupon_code: str | None
+    item_count: int
+    vendors: list[PreviewVendor]

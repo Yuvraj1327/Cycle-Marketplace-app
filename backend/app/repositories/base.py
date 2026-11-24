@@ -14,6 +14,16 @@ from app.core.supabase import get_admin_client
 Row = dict[str, Any]
 
 
+def day_range(query: Any, column: str, date_from, date_to) -> Any:
+    """Inclusive calendar-day window in the platform's local time (Asia/Kolkata): from 00:00 of `date_from` up to (excluding) 00:00 after `date_to`."""
+    from datetime import timedelta
+    if date_from:
+        query = query.gte(column, f"{date_from.isoformat()}T00:00:00+05:30")
+    if date_to:
+        query = query.lt(column, f"{(date_to + timedelta(days=1)).isoformat()}T00:00:00+05:30")
+    return query
+
+
 class BaseRepository:
     table: str = ""
 

@@ -43,6 +43,12 @@ class VendorBookingService:
         out = BookingBuilder(self.db, self._cfg()).detail(b, vendor.user.access_token, can_cancel=False)
         return {**out, "customer": customer_brief(self.bookings, b["customer_id"])}
 
+    def timeline(self, vendor: ApprovedVendor, booking_id: UUID) -> list[dict]:
+        b = self._own(vendor, booking_id)
+        return [{"at": h["created_at"], "from_status": h.get("from_status"), "to_status": h["to_status"], "note": h.get("note"),
+                 "by_role": "customer" if h.get("changed_by") == b["customer_id"] else ("vendor" if h.get("changed_by") == vendor.user.id else None)}
+                for h in self.bookings.history(b["id"])]
+
     # ---------------- decisions
     def accept(self, vendor: ApprovedVendor, booking_id: UUID, body: AcceptBooking) -> dict:
         b = self._own(vendor, booking_id)

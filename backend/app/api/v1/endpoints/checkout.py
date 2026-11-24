@@ -4,7 +4,7 @@ from postgrest import SyncPostgrestClient
 from app.api.v1.responses import E400, E404, E409, E422, PROTECTED
 from app.core.dependencies import CurrentUser, get_admin_db, get_provider, get_user_db, require_customer
 from app.integrations.payments.base import PaymentProvider
-from app.schemas.checkout import CheckoutOut, CheckoutRequest
+from app.schemas.checkout import CheckoutOptions, CheckoutOut, CheckoutPreview, CheckoutRequest
 from app.services.checkout_service import CheckoutService
 
 router = APIRouter(prefix="/checkout", tags=["Checkout"], responses=PROTECTED)
@@ -32,3 +32,18 @@ def checkout(body: CheckoutRequest, response: Response, idempotency_key: str = H
     result = service.checkout(user, body, idempotency_key.strip())
     response.status_code = status.HTTP_200_OK if result["replay"] else status.HTTP_201_CREATED
     return result
+
+
+@router.get("/options", response_model=CheckoutOptions, summary="Which payment methods and charges apply",
+            description="**Protected - customer role.** Read-only: whether COD is enabled, whether online payment is actually available (enabled AND a provider is configured), "
+            "whether several sellers may share one checkout, and the delivery-charge rule. Use it to decide what the checkout screen offers.")
+def options(_user: CurrentUser = Depends(require_customer), service: CheckoutService = Depends(get_service)):
+    return service.options()
+
+
+@router.post("/preview", response_model=CheckoutPreview, summary="Server-computed totals for the current cart",
+             description="**Protected - customer role.** Same body and validation as checkout (address, coupon, seller), same arithmetic - but nothing is created, reserved or consumed. "
+             "Returns subtotal, delivery charge, coupon discount and total per order and per seller. Not binding: checkout recomputes everything.",
+             responses={**E400, **E404, **E409, **E422, 503: {"description": "Commission configuration unavailable"}})
+def preview(body: CheckoutRequest, user: CurrentUser = Depends(require_customer), service: CheckoutService = Depends(get_service)):
+    return service.preview(user, body)

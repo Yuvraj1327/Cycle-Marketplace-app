@@ -254,3 +254,55 @@ def test_accept_racing_customer_cancel_ends_consistent(svc_shop):
     assert not any("deadlock" in r.stderr.lower() for r in out)
     assert svc_shop.q("select count(*) from public.service_bookings where status not in ('cancelled')") == svc_shop.q("select count(*) from public.service_bookings where status = 'accepted'")
     assert svc_shop.q("select count(*) from public.service_bookings where status = 'cancelled' and confirmed_date is not null") == "0"
+
+
+# ---------------------------------------------------------------------------------------------------- Step 8: vendor dashboard aggregate
+def test_vendor_dashboard_summary_matches_the_records(shop):
+    shop.q("update public.products set stock_quantity = 10")
+    vendor = shop.q("select id from public.vendor_profiles")
+    for i in (1, 2, 3):
+        shop.q(f"select public.place_order(public.t_payload('{cust(i)}','dash-key-{i:03d}'))")
+    ids = shop.q("select string_agg(id::text, ',' order by created_at) from public.vendor_orders").split(",")
+    shop.q(f"select public.transition_vendor_order('{ids[0]}', '{vendor}', 'accepted', null, 'vendor', null)")
+    shop.q(f"select public.transition_vendor_order('{ids[1]}', '{vendor}', 'rejected', null, 'vendor', 'out of stock')")
+    shop.q("select public.vendor_dashboard_summary((select id from public.vendor_profiles))")
+    import json
+    d = json.loads(shop.q(f"select public.vendor_dashboard_summary('{vendor}')::text"))
+    assert d["orders"]["total"] == 3 and d["orders"]["by_status"] == {"accepted": 1, "rejected": 1, "pending": 1}
+    assert d["orders"]["sales_total"] == 0 and d["products"]["total"] == 1 and d["products"]["active"] == 1
+    assert d["bookings"]["total"] == 0 and d["settlements"] == {}
+    # an unknown vendor sees nothing; the function is not callable by API roles
+    other = json.loads(shop.q("select public.vendor_dashboard_summary('00000000-0000-0000-0000-00000000dead')::text"))
+    assert other["orders"]["total"] == 0 and other["products"]["total"] == 0
+    denied = shop.par([f"set role authenticated; select public.vendor_dashboard_summary('{vendor}')"])[0]
+    assert "permission denied" in denied.stderr
+
+
+# ---------------------------------------------------------------------------------------------------- Step 9: admin console aggregates
+def test_admin_dashboard_summary_and_entity_counts(shop):
+    import json
+    shop.q("update public.products set stock_quantity = 10")
+    for i in (1, 2, 3):
+        shop.q(f"select public.place_order(public.t_payload('{cust(i)}','adm-key-{i:03d}'))")
+    shop.q(f"update public.profiles set status = 'restricted' where id = '{cust(3)}'")
+    ids = shop.q("select string_agg(id::text, ',' order by created_at) from public.orders").split(",")
+    shop.q(f"update public.orders set status = 'completed' where id = '{ids[0]}'")
+    shop.q(f"update public.orders set status = 'cancelled' where id = '{ids[1]}'")
+    d = json.loads(shop.q("select public.admin_dashboard_summary(current_date - 6, current_date)::text"))
+    assert d["customers"]["total"] == 30 and d["customers"]["by_status"] == {"active": 29, "restricted": 1}
+    assert d["customers"]["new_in_period"] == 30, "all customers were created today"
+    assert d["vendors"]["total"] == 1 and d["vendors"]["by_verification"] == {"approved": 1} and d["vendors"]["by_account_status"] == {"active": 1}
+    assert d["orders"]["total"] == 3 and d["orders"]["by_status"] == {"completed": 1, "cancelled": 1, "confirmed": 1}
+    assert d["orders"]["value_completed"] == 1000 and d["orders"]["value_confirmed"] == 1000
+    assert d["bookings"] == {"total": 0, "by_status": {}}
+    days = d["series"]["orders"]
+    assert len(days) == 7 and days[-1]["count"] == 3 and days[-1]["value"] == 2000, "cancelled orders are not counted as value"
+    assert all(x["count"] == 0 and x["value"] == 0 for x in days[:-1]), "empty days are real zeros, not invented values"
+    assert len(d["series"]["customers"]) == 7 and d["series"]["customers"][-1]["count"] == 30
+    counts = json.loads(shop.q(f"select public.admin_entity_counts('customer', array['{cust(1)}','{cust(9)}']::uuid[])::text"))
+    assert counts[cust(1)] == {"orders": 1, "bookings": 0} and counts[cust(9)] == {"orders": 0, "bookings": 0}
+    vendor = shop.q("select id from public.vendor_profiles")
+    assert json.loads(shop.q(f"select public.admin_entity_counts('vendor', array['{vendor}']::uuid[])::text"))[vendor] == {"products": 1, "orders": 3, "bookings": 0}
+    assert json.loads(shop.q("select public.admin_entity_counts('nonsense', array[]::uuid[])::text")) == {}
+    for fn in ("public.admin_dashboard_summary(current_date, current_date)", "public.admin_entity_counts('customer', array[]::uuid[])"):
+        assert "permission denied" in shop.par([f"set role authenticated; select {fn}"])[0].stderr

@@ -9,6 +9,7 @@ from app.schemas.booking import (
     BookingCreate,
     BookingDetail,
     BookingImageOut,
+    BookingOptions,
     BookingStatus,
     BookingSummary,
     CancelBooking,
@@ -27,6 +28,12 @@ _NOTE = "**Protected - customer role.** Your own bookings only (someone else's b
 
 def get_service(db: SyncPostgrestClient = Depends(get_user_db), admin_db: SyncPostgrestClient = Depends(get_admin_db)) -> BookingService:
     return BookingService(db, admin_db)
+
+
+@router.get("/options", response_model=BookingOptions, summary="Booking form options",
+            description=_NOTE + " Pickup/drop-off charges (null until the admin configures them), minimum notice and how far ahead bookings are allowed.")
+def booking_options(_user: CurrentUser = Depends(require_customer), service: BookingService = Depends(get_service)):
+    return service.options()
 
 
 @router.post("", response_model=BookingDetail, status_code=status.HTTP_201_CREATED, summary="Book a service",

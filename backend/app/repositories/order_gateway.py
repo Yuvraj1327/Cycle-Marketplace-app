@@ -14,6 +14,9 @@ class OrderGateway(BaseRepository):
     def _call(self, fn: str, params: dict[str, Any]) -> Any:
         return self._run(self.client.rpc(fn, params)).data
 
+    def vendor_dashboard_summary(self, vendor_id: str) -> dict:
+        return self._call("vendor_dashboard_summary", {"p_vendor": vendor_id})
+
     def place_order(self, payload: dict) -> dict:
         return self._call("place_order", {"p": payload})
 

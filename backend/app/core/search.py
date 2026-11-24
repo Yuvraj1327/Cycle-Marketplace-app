@@ -10,8 +10,12 @@ _DISALLOWED = re.compile(r"[^\w\s\-./+']", re.UNICODE)  # keep letters, digits, 
 _SPACES = re.compile(r"\s+")
 
 
-def sanitize_term(raw: str, max_len: int = 100) -> str:
-    cleaned = _DISALLOWED.sub(" ", raw or "")
+_DISALLOWED_WITH_AT = re.compile(r"[^\w\s\-./+'@]", re.UNICODE)
+
+
+def sanitize_term(raw: str, max_len: int = 100, *, allow_at: bool = False) -> str:
+    """`allow_at` keeps '@' so e-mail addresses can be searched (it has no meaning in a PostgREST filter)."""
+    cleaned = (_DISALLOWED_WITH_AT if allow_at else _DISALLOWED).sub(" ", raw or "")
     return _SPACES.sub(" ", cleaned).strip()[:max_len]
 
 

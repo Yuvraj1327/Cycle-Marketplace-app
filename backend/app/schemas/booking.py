@@ -282,3 +282,13 @@ class VendorBookingListItem(BookingSummary):
 class AdminBookingListItem(VendorBookingListItem):
     customer_id: UUID
     vendor_id: UUID
+
+
+class BookingOptions(BaseModel):
+    """Platform settings that shape the booking form. `*_charge` is null while the platform has not configured an amount."""
+
+    pickup_charge: Money | None
+    dropoff_charge: Money | None
+    charges_configured: bool
+    min_notice_hours: int
+    max_advance_days: int

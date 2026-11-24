@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from postgrest.types import CountMethod
 
-from app.repositories.base import BaseRepository, Row
+from app.repositories.base import BaseRepository, Row, day_range
 
 
 class SettlementRepository(BaseRepository):
@@ -11,12 +11,13 @@ class SettlementRepository(BaseRepository):
     def __init__(self, client):
         super().__init__(client)
 
-    def list_settlements(self, *, vendor_id: str | None = None, status: str | None = None, page: int = 1, limit: int = 20) -> tuple[list[Row], int]:
+    def list_settlements(self, *, vendor_id: str | None = None, status: str | None = None, page: int = 1, limit: int = 20, date_from=None, date_to=None) -> tuple[list[Row], int]:
         q = self.client.table(self.table).select("*", count=CountMethod.exact)
         if vendor_id:
             q = q.eq("vendor_id", vendor_id)
         if status:
             q = q.eq("status", status)
+        q = day_range(q, "created_at", date_from, date_to)
         offset = (page - 1) * limit
         res = self._run(q.order("created_at", desc=True).order("id").range(offset, offset + limit - 1))
         return res.data, res.count or 0

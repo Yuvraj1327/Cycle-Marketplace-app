@@ -100,8 +100,10 @@ class FakeQuery:
     def neq(self, c, v): return self._f(lambda r: r.get(c) != v)
     def gt(self, c, v): return self._f(lambda r: r.get(c) is not None and _num(r[c]) > _num(v))
     def gte(self, c, v): return self._f(lambda r: r.get(c) is not None and _num(r[c]) >= _num(v))
+    def lt(self, c, v): return self._f(lambda r: r.get(c) is not None and _num(r[c]) < _num(v))
     def lte(self, c, v): return self._f(lambda r: r.get(c) is not None and _num(r[c]) <= _num(v))
     def in_(self, c, vs): return self._f(lambda r: r.get(c) in list(vs))
+    def contains(self, c, vs): return self._f(lambda r: set(vs) <= set(r.get(c) or []))
     def is_(self, c, v): return self._f(lambda r: (r.get(c) is None) == (v == "null"))
     def ilike(self, c, p): return self._f(lambda r: r.get(c) is not None and bool(_like_regex(p).match(str(r[c]))))
     @property
@@ -111,6 +113,9 @@ class FakeQuery:
         class _Not:
             def is_(self_inner, c, v):
                 return outer._f(lambda r: (r.get(c) is None) != (v == "null"))
+
+            def in_(self_inner, c, vs):
+                return outer._f(lambda r: r.get(c) not in list(vs))
         return _Not()
 
     def or_(self, expr):

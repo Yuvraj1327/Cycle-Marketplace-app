@@ -25,8 +25,8 @@ class VendorOrderService:
         self.settlement_repo = SettlementRepository(db)
         self.gateway = OrderGateway(admin_db)
 
-    def list(self, vendor: ApprovedVendor, *, status, page: int, limit: int) -> dict:
-        rows, total = self.orders.list_vendor_orders(vendor.vendor["id"], status=status, page=page, limit=limit)
+    def list(self, vendor: ApprovedVendor, *, status, page: int, limit: int, date_from=None, date_to=None) -> dict:
+        rows, total = self.orders.list_vendor_orders(vendor.vendor["id"], status=status, page=page, limit=limit, date_from=date_from, date_to=date_to)
         parents = {o["id"]: o for o in self.orders.list_orders(order_ids=[r["order_id"] for r in rows], page=1, limit=100)[0]} if rows else {}
         items = self.orders.items_for_vendor_orders([r["id"] for r in rows])
         return _catalog.page([self._list_item(r, parents.get(r["order_id"]), items) for r in rows if parents.get(r["order_id"])], total, page, limit)
@@ -48,8 +48,16 @@ class VendorOrderService:
             raise unprocessable("reason_required", "Give a reason (note) when cancelling an order.")
         return self._act(vendor, vendor_order_id, target, body.note)
 
-    def settlements(self, vendor: ApprovedVendor, *, status, page: int, limit: int) -> dict:
-        rows, total = self.settlement_repo.list_settlements(vendor_id=vendor.vendor["id"], status=status, page=page, limit=limit)
+    def timeline(self, vendor: ApprovedVendor, vendor_order_id: UUID) -> list[dict]:
+        vo = self._own(vendor, vendor_order_id)
+        return [{"at": h["created_at"], "scope": "vendor_order", "vendor_order_id": vo["id"], "vendor_name": None, "from_status": h.get("from_status"),
+                 "to_status": h["to_status"], "note": h.get("note")} for h in self.orders.vendor_order_history(vo["id"])]
+
+    def dashboard(self, vendor: ApprovedVendor) -> dict:
+        return self.gateway.vendor_dashboard_summary(vendor.vendor["id"])
+
+    def settlements(self, vendor: ApprovedVendor, *, status, page: int, limit: int, date_from=None, date_to=None) -> dict:
+        rows, total = self.settlement_repo.list_settlements(vendor_id=vendor.vendor["id"], status=status, page=page, limit=limit, date_from=date_from, date_to=date_to)
         return _catalog.page(rows, total, page, limit)
 
     # ---------------- internals

@@ -4,12 +4,14 @@ from app.api.v1.endpoints import (
     addresses,
     admin,
     admin_commerce,
+    admin_users,
     admin_services,
     auth,
     banners,
     cart,
     categories,
     checkout,
+    notifications,
     orders,
     payments,
     products,
@@ -57,4 +59,8 @@ api_router.include_router(admin_services.categories)
 api_router.include_router(admin_services.services)
 api_router.include_router(admin_services.bookings)
 api_router.include_router(admin_services.pickups)
+api_router.include_router(admin_users.dashboard)
+api_router.include_router(admin_users.customers)
+api_router.include_router(admin_users.vendors)
 api_router.include_router(admin_services.tickets)
+api_router.include_router(notifications.router)

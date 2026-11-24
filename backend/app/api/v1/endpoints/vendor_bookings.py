@@ -16,6 +16,7 @@ from app.schemas.booking import (
     RejectBooking,
     ScheduleChange,
     StatusUpdate,
+    TimelineEvent,
     VendorBookingDetail,
     VendorBookingListItem,
 )
@@ -36,6 +37,12 @@ def list_bookings(status: BookingStatus | None = None, date_from: date | None = 
                   page: int = Query(1, ge=1, le=10_000), limit: int = Query(20, ge=1, le=100), vendor: ApprovedVendor = Depends(require_approved_vendor),
                   service: VendorBookingService = Depends(get_service)):
     return service.list(vendor, status=status.value if status else None, date_from=date_from, date_to=date_to, q=q, page=page, limit=limit)
+
+
+@router.get("/service-bookings/{booking_id}/timeline", response_model=list[TimelineEvent], summary="Status history of one booking",
+            description=_NOTE + " Oldest first, with the actor's note and whether the change was made by the customer or you.", responses={**E404, **E422})
+def booking_timeline(booking_id: UUID, vendor: ApprovedVendor = Depends(require_approved_vendor), service: VendorBookingService = Depends(get_service)):
+    return service.timeline(vendor, booking_id)
 
 
 @router.get("/service-bookings/{booking_id}", response_model=VendorBookingDetail, summary="Booking details",

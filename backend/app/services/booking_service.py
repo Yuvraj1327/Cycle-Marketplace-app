@@ -42,6 +42,11 @@ class BookingService:
     def builder(self) -> BookingBuilder:
         return BookingBuilder(self.db, self.cfg())
 
+    def options(self) -> dict:
+        c = self.cfg()
+        return {"pickup_charge": c.pickup_charge, "dropoff_charge": c.dropoff_charge, "charges_configured": c.charges_configured,
+                "min_notice_hours": c.min_notice_hours, "max_advance_days": c.max_advance_days}
+
     # ---------------- create
     def create(self, user: CurrentUser, body: BookingCreate) -> dict:
         cfg = self.cfg()

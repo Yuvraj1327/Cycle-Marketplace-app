@@ -1,3 +1,4 @@
+from datetime import date
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
@@ -6,8 +7,9 @@ from postgrest import SyncPostgrestClient
 from app.api.v1.responses import E404, E409, E422, PROTECTED
 from app.core.dependencies import ApprovedVendor, get_admin_db, get_user_db, require_approved_vendor
 from app.schemas.common import Page
-from app.schemas.order import VendorAccept, VendorOrderDetail, VendorOrderListItem, VendorOrderStatus, VendorReject, VendorStatusUpdate
+from app.schemas.order import TimelineEvent, VendorAccept, VendorOrderDetail, VendorOrderListItem, VendorOrderStatus, VendorReject, VendorStatusUpdate
 from app.schemas.settlement import SettlementOut
+from app.schemas.vendor_dashboard import VendorDashboard
 from app.services.vendor_order_service import VendorOrderService
 
 router = APIRouter(prefix="/vendor", tags=["Vendor orders"], responses=PROTECTED)
@@ -20,10 +22,10 @@ def get_service(db: SyncPostgrestClient = Depends(get_user_db), admin_db: SyncPo
 
 
 @router.get("/orders", response_model=Page[VendorOrderListItem], summary="My incoming and past orders",
-            description=_NOTE + " Filter by `status` (pending = waiting for you, delivered = completed sales, cancelled/rejected...).", responses=E422)
-def list_orders(status: VendorOrderStatus | None = None, page: int = Query(1, ge=1, le=10_000), limit: int = Query(20, ge=1, le=100),
+            description=_NOTE + " Filter by `status` (pending = waiting for you, delivered = completed sales, cancelled/rejected...) and by `date_from`/`date_to` (inclusive calendar days, India time).", responses=E422)
+def list_orders(status: VendorOrderStatus | None = None, date_from: date | None = None, date_to: date | None = None, page: int = Query(1, ge=1, le=10_000), limit: int = Query(20, ge=1, le=100),
                 vendor: ApprovedVendor = Depends(require_approved_vendor), service: VendorOrderService = Depends(get_service)):
-    return service.list(vendor, status=status.value if status else None, page=page, limit=limit)
+    return service.list(vendor, status=status.value if status else None, page=page, limit=limit, date_from=date_from, date_to=date_to)
 
 
 @router.get("/orders/{order_id}", response_model=VendorOrderDetail, summary="Order details",
@@ -31,6 +33,19 @@ def list_orders(status: VendorOrderStatus | None = None, page: int = Query(1, ge
             responses={**E404, **E422})
 def get_order(order_id: UUID, vendor: ApprovedVendor = Depends(require_approved_vendor), service: VendorOrderService = Depends(get_service)):
     return service.get(vendor, order_id)
+
+
+@router.get("/orders/{order_id}/timeline", response_model=list[TimelineEvent], summary="Status history of one order",
+            description=_NOTE + " Only the status changes of YOUR part of the order, oldest first, with the actor's note.", responses={**E404, **E422})
+def order_timeline(order_id: UUID, vendor: ApprovedVendor = Depends(require_approved_vendor), service: VendorOrderService = Depends(get_service)):
+    return service.timeline(vendor, order_id)
+
+
+@router.get("/dashboard", response_model=VendorDashboard, summary="Business summary (counts and recorded money)",
+            description=_NOTE + " One aggregate for the dashboard/earnings screens: order/booking counts by status, product counts, delivered-order sales and "
+            "commission snapshots, completed-service value (recorded, not collected) and settlement totals by status. All figures are computed in the database.")
+def dashboard(vendor: ApprovedVendor = Depends(require_approved_vendor), service: VendorOrderService = Depends(get_service)):
+    return service.dashboard(vendor)
 
 
 @router.post("/orders/{order_id}/accept", response_model=VendorOrderDetail, summary="Accept an order", description=_NOTE + " Only from `pending`.",
@@ -57,6 +72,6 @@ def update_status(order_id: UUID, body: VendorStatusUpdate, vendor: ApprovedVend
 @router.get("/settlements", response_model=Page[SettlementOut], summary="My settlement records",
             description=_NOTE + " Per delivered order: gross, commission, deductions, net. `ready` = payment confirmed; `paid` = recorded by the platform "
             "after paying you outside the system. These are records, not payouts.", responses=E422)
-def settlements(status: str | None = Query(None, pattern="^(pending|ready|paid|cancelled)$"), page: int = Query(1, ge=1, le=10_000), limit: int = Query(20, ge=1, le=100),
+def settlements(status: str | None = Query(None, pattern="^(pending|ready|paid|cancelled)$"), date_from: date | None = None, date_to: date | None = None, page: int = Query(1, ge=1, le=10_000), limit: int = Query(20, ge=1, le=100),
                 vendor: ApprovedVendor = Depends(require_approved_vendor), service: VendorOrderService = Depends(get_service)):
-    return service.settlements(vendor, status=status, page=page, limit=limit)
+    return service.settlements(vendor, status=status, page=page, limit=limit, date_from=date_from, date_to=date_to)
