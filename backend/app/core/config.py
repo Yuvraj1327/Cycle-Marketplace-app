@@ -1,0 +1,56 @@
+from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    app_name: str = "Cycle Marketplace API"
+    app_env: str = "development"
+    debug: bool = False
+    api_v1_prefix: str = "/api/v1"
+    cors_origins: list[str] = ["http://localhost:5173"]
+
+    supabase_url: str = ""
+    supabase_anon_key: str = ""
+    supabase_service_role_key: str = ""
+
+    # JWT verification. Asymmetric signing keys (RS256/ES256) are verified against the project's JWKS endpoint
+    # and need no secret. SUPABASE_JWT_SECRET is only for projects still on the legacy shared HS256 secret.
+    supabase_jwt_secret: str = ""
+    jwt_audience: str = "authenticated"
+    jwt_leeway_seconds: int = 5
+    jwks_cache_seconds: int = 600
+
+    # payments. No provider has been chosen yet: leaving PAYMENT_PROVIDER empty means "online payments not configured".
+    payment_provider: str = ""
+    payment_provider_key_id: str = ""        # public/key id of the provider account
+    payment_provider_key_secret: str = ""    # secret API key - server side only
+    payment_webhook_secret: str = ""         # used to verify webhook signatures
+    currency: str = "INR"
+    business_timezone: str = "Asia/Kolkata"   # 'today' and slot times for servicing are evaluated in this zone
+    max_booking_images: int = 5
+
+    # marketplace limits
+    max_product_images: int = 8
+    max_image_bytes: int = 5 * 1024 * 1024
+    max_cart_items: int = 50
+    max_wishlist_items: int = 200
+
+    @property
+    def jwt_issuer(self) -> str:
+        return f"{self.supabase_url.rstrip('/')}/auth/v1"
+
+    @property
+    def jwks_url(self) -> str:
+        return f"{self.jwt_issuer}/.well-known/jwks.json"
+
+    @property
+    def supabase_configured(self) -> bool:
+        return bool(self.supabase_url and self.supabase_anon_key and self.supabase_service_role_key)
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

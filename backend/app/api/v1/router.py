@@ -1,0 +1,60 @@
+from fastapi import APIRouter
+
+from app.api.v1.endpoints import (
+    addresses,
+    admin,
+    admin_commerce,
+    admin_services,
+    auth,
+    banners,
+    cart,
+    categories,
+    checkout,
+    orders,
+    payments,
+    products,
+    profiles,
+    service_bookings,
+    services_public,
+    vendor_bookings,
+    vendor_orders,
+    vendor_products,
+    vendor_services,
+    vendors,
+    wishlist,
+)
+
+api_router = APIRouter()
+api_router.include_router(auth.router)
+api_router.include_router(profiles.router)
+api_router.include_router(addresses.router)
+api_router.include_router(vendors.router)
+api_router.include_router(categories.router)
+api_router.include_router(products.router)
+api_router.include_router(banners.router)
+api_router.include_router(vendor_products.router)
+api_router.include_router(cart.router)
+api_router.include_router(wishlist.router)
+api_router.include_router(admin.categories)
+api_router.include_router(admin.products)
+api_router.include_router(admin.banners)
+api_router.include_router(checkout.router)
+api_router.include_router(orders.router)
+api_router.include_router(payments.router)
+api_router.include_router(vendor_orders.router)
+api_router.include_router(admin_commerce.orders)
+api_router.include_router(admin_commerce.payments)
+api_router.include_router(admin_commerce.refunds)
+api_router.include_router(admin_commerce.settlements)
+api_router.include_router(admin_commerce.config)
+api_router.include_router(services_public.categories)
+api_router.include_router(services_public.services)
+api_router.include_router(service_bookings.router)
+api_router.include_router(service_bookings.support)
+api_router.include_router(vendor_services.router)
+api_router.include_router(vendor_bookings.router)
+api_router.include_router(admin_services.categories)
+api_router.include_router(admin_services.services)
+api_router.include_router(admin_services.bookings)
+api_router.include_router(admin_services.pickups)
+api_router.include_router(admin_services.tickets)
