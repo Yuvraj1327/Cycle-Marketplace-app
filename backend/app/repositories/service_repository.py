@@ -1,5 +1,6 @@
 from postgrest.types import CountMethod
 
+from app.core.search import like_escape
 from app.repositories.base import BaseRepository, Row
 
 
@@ -22,6 +23,10 @@ class ServiceCategoryRepository(BaseRepository):
     def slugs_like(self, base: str) -> set[str]:
         return {r["slug"] for r in self._run(self.client.table(self.table).select("slug").ilike("slug", f"{base}*")).data}
 
+    def name_taken(self, name: str, *, exclude_id: str | None = None) -> bool:
+        rows = self._run(self.client.table(self.table).select("id,name").ilike("name", like_escape(name.strip())).limit(10)).data
+        return any(r["id"] != exclude_id and r["name"].strip().lower() == name.strip().lower() for r in rows)
+
     def service_count(self, category_id: str, *, public_only: bool) -> int:
         q = self.client.table("vendor_services").select("id", count=CountMethod.exact, head=True).eq("service_category_id", category_id)
         if public_only:
@@ -38,12 +43,14 @@ class VendorServiceRepository(BaseRepository):
     def __init__(self, client):
         super().__init__(client)
 
-    def search(self, *, category_id=None, vendor_id=None, active_only=False, is_active=None, q_name=None, page=1, limit=20) -> tuple[list[Row], int]:
+    def search(self, *, category_id=None, vendor_id=None, active_only=False, is_active=None, q_name=None, page=1, limit=20, is_available=None) -> tuple[list[Row], int]:
         q = self.client.table(self.table).select("*", count=CountMethod.exact)
         if active_only:
             q = q.eq("is_active", True).eq("is_available", True)
         if is_active is not None:
             q = q.eq("is_active", is_active)
+        if is_available is not None:
+            q = q.eq("is_available", is_available)
         if category_id:
             q = q.eq("service_category_id", category_id)
         if vendor_id:
@@ -63,6 +70,11 @@ class VendorServiceRepository(BaseRepository):
 
     def modify(self, service_id: str, values: Row, *, vendor_id: str) -> Row | None:
         res = self._run(self.client.table(self.table).update(values).eq("id", service_id).eq("vendor_id", vendor_id))
+        return res.data[0] if res.data else None
+
+    def modify_as_admin(self, service_id: str, values: Row) -> Row | None:
+        """Administrative change (admin token / RLS is_admin); ownership is deliberately not part of the filter."""
+        res = self._run(self.client.table(self.table).update(values).eq("id", service_id))
         return res.data[0] if res.data else None
 
     def remove(self, service_id: str, *, vendor_id: str) -> None:

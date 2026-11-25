@@ -60,3 +60,15 @@ The contract tests do **not** exercise real Supabase Auth/Storage/PostgREST or a
 ```bash
 flutter build apk --debug      # build/app/outputs/flutter-apk/app-debug.apk
 ```
+
+
+## Push notifications (Firebase Cloud Messaging) — Step 11
+
+Push is **off until the client's Firebase project values are supplied**; in-app notifications always work. Fill the four `FIREBASE_*` values in `dart_defines.<env>.json`
+(copy `dart_defines.example.json`; Firebase console → Project settings → Your apps → Android) and run with `flutter run --dart-define-from-file=dart_defines.dev.json`.
+No `google-services.json` is needed or committed: Firebase is initialised from those values. The server-side service-account key lives only on the backend.
+
+What the app does (`lib/core/push/`): asks for the notification permission after sign-in, registers the FCM token with `PUT /devices`, re-registers when the token refreshes,
+shows a banner (and refreshes the unread badge) for a push that arrives while the app is open, opens the right order / booking when a notification is tapped (after sign-in
+if needed), and on sign-out calls `POST /devices/unregister` and invalidates the token on the device. Android only: iOS needs an Apple/APNs key in Firebase and was not set up.
+Not verified against a live Firebase project (none exists yet): the app logic is tested with a fake push service; `firebase_push_service.dart` is only compiled and analysed.

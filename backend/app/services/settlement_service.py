@@ -31,10 +31,11 @@ class SettlementService:
         self.orders = OrderRepository(db)
         self.audit = AuditRepository(admin_db)
 
-    def list(self, *, vendor_id, status, page: int, limit: int) -> dict:
-        rows, total = self.settlements.list_settlements(vendor_id=str(vendor_id) if vendor_id else None, status=status, page=page, limit=limit)
+    def list(self, *, vendor_id, status, page: int, limit: int, date_from=None, date_to=None, with_vendor_names: bool = False) -> dict:
+        rows, total = self.settlements.list_settlements(vendor_id=str(vendor_id) if vendor_id else None, status=status, page=page, limit=limit, date_from=date_from, date_to=date_to)
         numbers = self._order_numbers(rows)
-        items = [{**r, "order_number": numbers.get(r["vendor_order_id"])} for r in rows]
+        names = self._vendor_names(rows) if with_vendor_names else {}
+        items = [{**r, "order_number": numbers.get(r["vendor_order_id"]), **({"vendor_name": names.get(r["vendor_id"])} if with_vendor_names else {})} for r in rows]
         totals = self.settlements.totals(str(vendor_id) if vendor_id else None)
         summary = {s: _sum(totals, s)["net"] for s in ("pending", "ready", "paid")}
         return {**_catalog.page(items, total, page, limit), "summary": summary}
@@ -51,6 +52,11 @@ class SettlementService:
         self.audit.record(admin.id, "settlement_marked_paid", "settlement", str(settlement_id),
                           {"payout_reference": body.payout_reference, "net_amount": float(q2(updated["net_amount"])), "recorded_manually": True})
         return updated
+
+    def _vendor_names(self, rows) -> dict[str, str]:
+        ids = sorted({r["vendor_id"] for r in rows})
+        found = self.orders._run(self.orders.client.table("vendor_profiles").select("id,business_name").in_("id", ids)).data if ids else []
+        return {v["id"]: v["business_name"] for v in found}
 
     def _order_numbers(self, rows) -> dict[str, str]:
         vos = self.orders._run(self.orders.client.table("vendor_orders").select("id,vendor_order_number").in_("id", [r["vendor_order_id"] for r in rows])).data if rows else []

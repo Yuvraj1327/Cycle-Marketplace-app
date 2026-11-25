@@ -65,6 +65,10 @@ CM_ERRORS: dict[str, tuple[int, str]] = {
     "final_negative": (422, "That adjustment would make the final price negative."),
     "use_booking_status": (422, "Pickup and delivery completion are recorded by updating the booking status."),
     "schedule_required": (422, "A scheduled time is required to mark this step as scheduled."),
+    # admin operations
+    "no_recipients": (409, "There is nobody to send this to: no active accounts match the chosen audience."),
+    "invalid_audience": (422, "Choose customers, vendors or specific recipients."),
+    "invalid_report": (422, "Unknown report."),
 }
 
 

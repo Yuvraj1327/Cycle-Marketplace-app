@@ -149,7 +149,9 @@ class FakeQuery:
                 cand = {**r, **self.payload, "updated_at": db.now()}
                 db.check_write(self.table_name, "update", cand, r, self.actor)
                 db.check_unique(self.table_name, cand, [x for x in rows if x is not r])
+                before = dict(r)
                 r.update(cand)
+                db.after_update(self.table_name, before, r)
             return FakeResult([copy.deepcopy(r) for r in hit])
         if self.op == "delete":
             hit = [r for r in rows if db.visible(self.table_name, r, self.actor) and match(r) and db.can_write_row(self.table_name, r, self.actor)]
@@ -197,6 +199,16 @@ class FakeDB:
     @staticmethod
     def now():
         return "2026-01-01T00:00:00+00:00"
+
+    def future(self, seconds):
+        """A timestamp `seconds` after the (frozen) fake clock; used for push back-off."""
+        from datetime import datetime, timedelta
+        return (datetime.fromisoformat(self.now()) + timedelta(seconds=seconds)).isoformat()
+
+    def age_hours(self, ts):
+        """Fake notifications are all 'created' at the frozen fake clock, so they are never too old unless a test backdates `created_at`."""
+        from datetime import datetime
+        return (datetime.fromisoformat(self.now()) - datetime.fromisoformat(str(ts))).total_seconds() / 3600
 
     def rows(self, name):
         if name == "vendor_public_profiles":   # the public-safe view of approved vendors
@@ -269,7 +281,7 @@ class FakeDB:
             return bool(par and actor is not None and par["user_id"] == actor)
         if table == "vendor_profiles":
             return actor is not None and row["user_id"] == actor
-        if table in ADMIN_ONLY or table in ("platform_settings", "payment_events", "audit_log"):
+        if table in ADMIN_ONLY or table in ("platform_settings", "payment_events", "audit_log", "device_tokens"):
             return False
         vendor = self.vendor_of(actor) if actor else None
         if table == "orders":
@@ -350,6 +362,16 @@ class FakeDB:
         if table in ("carts", "wishlists") and new["user_id"] != actor:
             raise _pg_error("42501", "row-level security")
 
+    def after_update(self, table, old, new):
+        """Python twin of the AFTER UPDATE triggers of migration 20 (the real ones run against PostgreSQL in test_sql_integrity.py)."""
+        if table == "products" and old.get("approval_status") != new.get("approval_status") and new["approval_status"] in ("approved", "rejected"):
+            vendor = next((v for v in self.rows("vendor_profiles") if v["id"] == new["vendor_id"]), None)
+            if vendor:
+                rejected = new["approval_status"] == "rejected"
+                self.sql._note(vendor["user_id"], "system", "Product rejected" if rejected else "Product approved",
+                               f"\"{new['name']}\" was {new['approval_status']}" + (f": {new.get('review_notes')}" if rejected and new.get("review_notes") else " and can now be shown to customers") + ".",
+                               "product", new["id"])
+
     def cascade_delete(self, table, deleted):
         ids = {r["id"] for r in deleted}
         if table == "products":
@@ -393,7 +415,7 @@ class FakeDB:
                 row.setdefault(k, None)
         if table == "coupons":
             row.setdefault("is_active", True); row.setdefault("used_count", 0); row.setdefault("min_order_amount", 0); row.setdefault("applies_to", "all")
-            for k in ("usage_limit", "per_user_limit", "max_discount_amount", "valid_until"):
+            for k in ("usage_limit", "per_user_limit", "max_discount_amount", "valid_until", "description", "created_by"):
                 row.setdefault(k, None)
             row.setdefault("valid_from", "2020-01-01T00:00:00+00:00")
         if table == "vendor_services":
@@ -410,6 +432,12 @@ class FakeDB:
                 row.setdefault(k, None)
         if table == "service_booking_images":
             row.setdefault("uploaded_by", None)
+        if table == "notifications":
+            row.setdefault("push_status", "pending"); row.setdefault("push_attempts", 0); row.setdefault("push_next_at", None); row.setdefault("push_sent_at", None)
+            row.setdefault("push_error", None); row.setdefault("read_at", None); row.setdefault("event_key", None); row.setdefault("related_type", None)
+            row.setdefault("related_id", None); row.setdefault("announcement_id", None); row.setdefault("is_read", False)
+        if table == "device_tokens":
+            row.setdefault("is_active", True); row.setdefault("device_label", None); row.setdefault("app_version", None); row.setdefault("last_error", None)
         if table == "banners":
             row.setdefault("is_active", True); row.setdefault("sort_order", 0)
             for k in ("subtitle", "action_value", "starts_at", "ends_at", "created_by"):

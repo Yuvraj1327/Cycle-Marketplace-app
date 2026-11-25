@@ -43,3 +43,14 @@ supabase/.branches/
 .env
 .env.*
 !.env.example
+
+# Secrets and per-environment configuration: never commit real values (the *.example files are the templates)
+.env
+.env.*
+!.env.example
+**/dart_defines.*.json
+!**/dart_defines.example.json
+**/*service-account*.json
+**/*serviceAccount*.json
+**/google-services.json
+**/GoogleService-Info.plist

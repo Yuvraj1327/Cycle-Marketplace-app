@@ -41,3 +41,17 @@ class MarkPaid(StrictModel):
 
     payout_reference: Annotated[str, StringConstraints(min_length=3, max_length=100)]
     notes: Annotated[str, StringConstraints(max_length=500)] | None = None
+
+
+class AdminSettlementOut(SettlementOut):
+    vendor_name: str | None = None
+    notes: str | None = None
+
+
+class AdminSettlementPage(BaseModel):
+    items: list[AdminSettlementOut]
+    total: int
+    page: int
+    limit: int
+    pages: int
+    summary: dict[str, Money]

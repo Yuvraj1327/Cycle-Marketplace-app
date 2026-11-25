@@ -1,4 +1,4 @@
-# Cycle Marketplace — Admin Web (React + TypeScript + Vite, Step 9)
+# Cycle Marketplace — Admin Web (React + TypeScript + Vite, Steps 9–10)
 
 Administrator console. Identity is **Supabase Auth**; every business action goes through **FastAPI** with `Authorization: Bearer <access token>`.
 Whether someone is an administrator is decided by the backend (`GET /auth/me` → `role = admin`, `status = active`) on every start-up and by every
@@ -23,26 +23,27 @@ every `VITE_*` value is bundled into the browser (a test fails the build if a se
 | Path | What |
 |---|---|
 | `app/` | config, router (`routes`), `AuthProvider` (backend-verified session), toasts |
-| `services/api/` | `client.ts` the only HTTP code (Bearer token, one refresh+retry on 401, timeout, `ApiError`); `services.ts` typed Auth / Dashboard / Customer / Vendor / Profile services |
+| `services/api/` | `client.ts` the only HTTP code (Bearer token, one refresh+retry on 401, timeout, `ApiError`); `services.ts` typed services per module (customers, vendors, products, orders, payments, refunds, commission, coupons, reports, settings …) |
 | `services/supabase/` | Supabase client + `AuthGateway` (sign-in, sign-out, refresh, reset e-mail, password change) |
 | `components/` | `layout` (sidebar, top bar, breadcrumbs, page header), `common` (badges, metric cards, dialogs, modals, pagination, states), `tables`, `charts` (SVG) |
-| `features/` | `authentication`, `dashboard`, `customers`, `vendors`, `profile`, `placeholders` |
+| `features/` | `authentication`, `dashboard`, `customers`, `vendors`, `profile`, `products`, `categories`, `banners`, `orders`, `services`, `payments`, `finance`, `communication`, `reports`, `settings`, `support`, `common` |
 | `hooks/`, `utils/`, `types/` | data/list hooks, formatting, API types mirroring the OpenAPI schemas |
 
 ## Pages
 
-`/login`, `/forgot-password`, `/` (overview), `/customers`, `/customers/:id`, `/vendors` (all + pending applications), `/vendors/:id` (application review + decisions),
-`/profile`. Products, Orders, Services & Bookings, Payments, Notifications, Reports and Settings are navigation placeholders (they call no APIs).
+Overview, Customers, Vendors (Step 9); Products, Categories, Featured products, Banners; Orders (+ fulfilment), Services, Service categories, Service bookings,
+Pickup & drop-off; Payments, Refunds, Commission, Vendor settlements; Notifications, Announcements; six Reports; Platform settings, Charges, Coupons, Account.
+The full route table, status per module and open client decisions are in `docs/admin-operations.md`.
 
 ## Tests
 
 ```bash
 npm run lint
-npm test                                   # 67 unit/component tests (API client, auth + route protection, dashboard, customers, vendors, profile, secret scan)
+npm test                                   # 165 unit/component tests (API client, auth + route guards, every module, navigation, secret scan)
 
 # contract tests: the real services + client over real HTTP against the real FastAPI app (in-memory DB, locally signed JWTs)
 (cd ../../backend && .venv/bin/python -m tests.dev_server) &
-CONTRACT_API=http://127.0.0.1:8791 npm run test:contract     # 17 tests; stop the dev server afterwards
+CONTRACT_API=http://127.0.0.1:8791 npm run test:contract     # 38 tests; stop the dev server afterwards
 ```
 
 These do **not** exercise real Supabase Auth or a browser. See `docs/admin-web.md` for what is and is not verified.

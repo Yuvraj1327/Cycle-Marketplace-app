@@ -10,6 +10,7 @@ import 'dart:io';
 
 import 'package:customer_app/core/api/api_client.dart';
 import 'package:customer_app/core/api/api_exception.dart';
+import 'package:customer_app/core/push/push_controller.dart';
 import 'package:customer_app/features/addresses/models.dart';
 import 'package:customer_app/features/addresses/repository.dart';
 import 'package:customer_app/features/authentication/repository.dart';
@@ -555,6 +556,40 @@ void main() {
       expect(t.status, 'open');
       expect((await s.list(1)).items.single.id, t.id);
       expect((await s.get(t.id)).subject, 'Late pickup');
+    });
+  });
+
+  group('push device registration', () {
+    const tokenA = 'contract-fcm-token-AAAAAAAAAAAAAAAAAAAA';
+    test('the app\'s own registration call is accepted for a customer and is idempotent', () async {
+      final repo = PushRepository(api);
+      await repo.register(tokenA);
+      await repo.register(tokenA);
+      await repo.unregister(tokenA);
+      await repo.unregister(tokenA); // unregistering twice is harmless
+    });
+    test('only the owner can unregister; a token moves to whoever registers it next', () async {
+      final mine = clientFor(() async => customerToken);
+      final other = clientFor(() async => otherToken);
+      await PushRepository(mine).register(tokenA);
+      final res = await other.post('/devices/unregister', body: {'token': tokenA}) as Map;
+      expect(res['unregistered'], isFalse, reason: 'someone else\'s token is left alone');
+      await PushRepository(other).register(tokenA); // same phone, another account
+      final back = await mine.post('/devices/unregister', body: {'token': tokenA}) as Map;
+      expect(back['unregistered'], isFalse, reason: 'the first account no longer owns it');
+      expect((await other.post('/devices/unregister', body: {'token': tokenA}) as Map)['unregistered'], isTrue);
+    });
+    test('a vendor or admin token cannot register as the customer app; bad tokens and unknown fields are refused', () async {
+      await expectApiError(PushRepository(clientFor(() async => vendorToken)).register(tokenA), kind: ApiErrorKind.forbidden);
+      await expectApiError(PushRepository(clientFor(() async => adminToken)).register(tokenA), kind: ApiErrorKind.forbidden);
+      await expectApiError(PushRepository(clientFor(() async => null)).register(tokenA), kind: ApiErrorKind.unauthorized);
+      await expectApiError(PushRepository(api).register('short'));
+      await expectApiError(api.put('/devices', body: {'token': tokenA, 'platform': 'android', 'app': 'customer', 'user_id': 'someone-else'}));
+    });
+    test('the device endpoints never return a token', () async {
+      final res = await api.put('/devices', body: {'token': tokenA, 'platform': 'android', 'app': 'customer'}) as Map;
+      expect(res.keys, ['registered']);
+      await api.post('/devices/unregister', body: {'token': tokenA});
     });
   });
 }

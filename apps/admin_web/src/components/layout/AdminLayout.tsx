@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../../app/providers/authContext'
 import { ConfirmDialog } from '../common/ui'
-import { NAV } from './nav'
+import { NAV_GROUPS } from './nav'
 
 function Icon({ d }: { d: string }) {
   return (
@@ -34,23 +34,27 @@ export function AdminLayout() {
 
   return (
     <div className={`shell ${open ? 'nav-open' : ''}`}>
-      <aside className="sidebar" aria-label="Main navigation">
+      <aside className="sidebar" aria-label="Sidebar">
         <Link to="/" className="brand">
           <span className="brand-mark" aria-hidden="true">C</span>
           <span><strong>Cycle Marketplace</strong><small>Admin console</small></span>
         </Link>
-        <nav>
-          <ul>
-            {NAV.map((n) => (
-              <li key={n.to}>
-                <NavLink to={n.to} end={n.end} onClick={() => setOpen(false)} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                  <Icon d={n.icon} />
-                  <span>{n.label}</span>
-                  {!n.ready && <em className="soon">Soon</em>}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
+        <nav aria-label="Main navigation">
+          {NAV_GROUPS.map((g) => (
+            <div key={g.heading} role="group" aria-label={g.heading}>
+              <p className="nav-heading">{g.heading}</p>
+              <ul>
+                {g.items.map((n) => (
+                  <li key={n.to}>
+                    <NavLink to={n.to} end={n.end} onClick={() => setOpen(false)} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                      <Icon d={n.icon} />
+                      <span>{n.label}</span>
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </nav>
         <div className="sidebar-foot muted">Signed in as administrator</div>
       </aside>

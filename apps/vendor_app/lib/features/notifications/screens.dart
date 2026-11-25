@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
 import '../../core/models/paged.dart';
 import '../../core/paged_controller.dart';
+import '../../core/push/notification_route.dart';
 import '../../core/providers.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/common.dart';
@@ -76,13 +77,12 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         /* still navigate; the badge refreshes next time */
       }
     }
-    if (!mounted || n.relatedId == null) return;
-    switch (n.relatedType) {
-      case 'vendor_order':
-        context.push('/orders/${n.relatedId}');
-      case 'service_booking':
-        context.push('/bookings/${n.relatedId}');
-    }
+    if (!mounted) return;
+    final route = routeForNotification(
+      relatedType: n.relatedType,
+      relatedId: n.relatedId,
+    );
+    if (route != null) context.push(route);
   }
 
   @override

@@ -32,13 +32,18 @@ class ServiceCategoryService:
 
     def create(self, body: ServiceCategoryCreate) -> dict:
         values = body.model_dump(mode="json", exclude={"slug"})
+        if self.repo.name_taken(body.name):
+            raise conflict("category_name_taken", f"A service category called '{body.name.strip()}' already exists.")
         values["slug"] = body.slug or self._unique_slug(body.name)
         return self._out(self.repo.create(values))
 
     def update(self, category_id: str, body: ServiceCategoryUpdate) -> dict:
         if self.repo.find(category_id) is None:
             raise NotFoundError("Service category not found.")
-        row = self.repo.update(category_id, changes(body, nullable={"description", "image_path"}))
+        values = changes(body, nullable={"description", "image_path"})
+        if "name" in values and self.repo.name_taken(values["name"], exclude_id=category_id):
+            raise conflict("category_name_taken", f"A service category called '{values['name'].strip()}' already exists.")
+        row = self.repo.update(category_id, values)
         return self._out(row)
 
     def delete(self, category_id: str) -> None:

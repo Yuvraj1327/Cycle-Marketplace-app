@@ -32,6 +32,25 @@ describe('no privileged credentials in the browser app', () => {
     const env = readFileSync(join(process.cwd(), '.env.example'), 'utf8')
     expect(env).not.toMatch(/SERVICE_ROLE\s*=/i)
   })
+  it('feature and component code never calls the network or the database directly: everything goes through the API services', () => {
+    for (const f of source.filter((x) => x.includes(join('src', 'features')) || x.includes(join('src', 'components')) || x.includes(join('src', 'hooks')))) {
+      const text = code(f)
+      expect(text, f).not.toMatch(/\bfetch\(/)
+      expect(text, f).not.toMatch(/XMLHttpRequest|axios/)
+      expect(text, f).not.toMatch(/\.from\(['"]/)                       // no supabase table access
+      expect(text, f).not.toMatch(/getSupabase|createClient|@supabase\/supabase-js/)
+      expect(text, f).not.toMatch(/dangerouslySetInnerHTML|eval\(|new Function\(/)
+      expect(text, f).not.toMatch(/Authorization/)                          // bearer tokens are attached only by the API client
+    }
+  })
+  it('image uploads go only to the admin-writable public `banners` bucket, through the signed-in session', () => {
+    const gateway = code(join(root, 'services', 'supabase', 'gateway.ts'))
+    expect(gateway).toMatch(/uploadImage\(bucket: 'banners'/)
+    expect(gateway.match(/storage\.from\(/g)).toHaveLength(1)
+    for (const f of source.filter((x) => x.includes(join('src', 'features')))) {
+      for (const m of code(f).matchAll(/uploadImage\(\s*'([^']+)'/g)) expect(m[1], f).toBe('banners')
+    }
+  })
   it('the only API origin used by services is the configured backend (no direct database access)', () => {
     for (const f of source.filter((x) => x.includes(join('src', 'services', 'api')))) {
       expect(code(f), f).not.toMatch(/\.from\(['"]/)                     // supabase.from(...) table access

@@ -42,3 +42,11 @@ export function isoDay(d: Date): string {
   const dd = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${dd}`
 }
+
+/** Inclusive local-date window ending today: lastDays(7) = today and the 6 days before. */
+export function lastDays(n: number): { from: string; to: string } {
+  const to = new Date()
+  const from = new Date()
+  from.setDate(to.getDate() - (n - 1))
+  return { from: isoDay(from), to: isoDay(to) }
+}

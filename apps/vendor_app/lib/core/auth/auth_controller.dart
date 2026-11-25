@@ -6,6 +6,7 @@ import '../../features/authentication/models.dart';
 import '../../features/business_profile/models.dart';
 import '../api/api_exception.dart';
 import '../providers.dart';
+import 'sign_out_hooks.dart';
 
 enum AuthStatus { unknown, signedOut, signedIn, error }
 
@@ -139,6 +140,9 @@ class AuthController extends Notifier<AuthState> {
   }
 
   Future<void> signOut() async {
+    await ref
+        .read(signOutHooksProvider)
+        .run(); // e.g. push unregistration: needs the session, so it runs first
     await ref.read(authRepositoryProvider).logout();
     await ref.read(authServiceProvider).signOut();
     state = const AuthState.signedOut();

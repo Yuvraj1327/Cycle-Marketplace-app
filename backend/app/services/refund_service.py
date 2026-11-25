@@ -10,7 +10,9 @@ from uuid import UUID
 from app.core.dependencies import CurrentUser
 from app.core.exceptions import AppError, NotFoundError, conflict
 from app.core.money import q2
+from app.core.search import contains_pattern, sanitize_term
 from app.integrations.payments.base import PaymentProvider, PaymentProviderError, PaymentProviderNotConfigured
+from app.repositories.admin_ops_repository import DirectoryRepository
 from app.repositories.commerce_config_repository import AuditRepository
 from app.repositories.order_gateway import OrderGateway
 from app.repositories.payment_repository import PaymentRepository
@@ -27,16 +29,30 @@ class RefundService:
         self.gateway = OrderGateway(admin_db)
         self.audit = AuditRepository(admin_db)
 
-    def list(self, *, status, order_id, payment_id, page: int, limit: int) -> dict:
-        rows, total = self.payments.list_refunds(status=status, order_id=str(order_id) if order_id else None,
-                                                 payment_id=str(payment_id) if payment_id else None, page=page, limit=limit)
-        return _catalog.page(rows, total, page, limit)
+    def list(self, *, status, order_id, payment_id, page: int, limit: int, q=None, date_from=None, date_to=None) -> dict:
+        term = sanitize_term(q or "", 60) or None
+        if q and not term:
+            return _catalog.page([], 0, page, limit)
+        expr = None
+        if term:
+            clauses = [f"provider_refund_id.ilike.{contains_pattern(term)}", f"reason.ilike.{contains_pattern(term)}"]
+            order_ids = DirectoryRepository(self.payments.client).order_ids_matching_number(term)
+            if order_ids:
+                clauses.append(f"order_id.in.({','.join(order_ids)})")
+            expr = ",".join(clauses)
+        rows, total = self.payments.list_refunds(status=status, order_id=str(order_id) if order_id else None, payment_id=str(payment_id) if payment_id else None,
+                                                 or_expr=expr, date_from=date_from, date_to=date_to, page=page, limit=limit)
+        return _catalog.page(self._with_numbers(rows), total, page, limit)
+
+    def _with_numbers(self, rows: list[dict]) -> list[dict]:
+        orders = self.payments.orders_by_ids([r["order_id"] for r in rows if r.get("order_id")])
+        return [{**r, "order_number": (orders.get(r.get("order_id")) or {}).get("order_number")} for r in rows]
 
     def get(self, refund_id: UUID) -> dict:
         row = self.payments.find_refund(str(refund_id))
         if row is None:
             raise NotFoundError("Refund not found.")
-        return row
+        return self._with_numbers([row])[0]
 
     def create(self, admin: CurrentUser, body: RefundCreate, idempotency_key: str) -> dict:
         if self.payments.find(str(body.payment_id)) is None:

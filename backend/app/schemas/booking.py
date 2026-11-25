@@ -282,6 +282,7 @@ class VendorBookingListItem(BookingSummary):
 class AdminBookingListItem(VendorBookingListItem):
     customer_id: UUID
     vendor_id: UUID
+    service_category: str | None = None
 
 
 class BookingOptions(BaseModel):

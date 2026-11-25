@@ -116,7 +116,7 @@ export function DashboardPage() {
             <Link className="btn btn-secondary btn-md" to="/vendors">Review vendors</Link>
             <Link className="btn btn-primary btn-md" to="/vendors?verification_status=pending">Approve vendor registrations</Link>
             <Link className="btn btn-secondary btn-md" to="/orders">View orders</Link>
-            <Link className="btn btn-secondary btn-md" to="/services">View service bookings</Link>
+            <Link className="btn btn-secondary btn-md" to="/service-bookings">View service bookings</Link>
           </div>
           <p className="muted small">Order and booking management arrive in the next development phase; the lists below are read-only.</p>
         </Card>

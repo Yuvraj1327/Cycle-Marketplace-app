@@ -14,6 +14,8 @@ export interface FakeGateway extends AuthGateway {
   failSignInWith: string | null
   refreshTo: string | null
   changed: { current: string; next: string }[]
+  uploads: { bucket: string; path: string; type: string; size: number }[]
+  failUpload: string | null
 }
 
 export function fakeGateway(opts: { token?: string | null; failSignInWith?: string; refreshTo?: string | null } = {}): FakeGateway {
@@ -25,6 +27,8 @@ export function fakeGateway(opts: { token?: string | null; failSignInWith?: stri
     failSignInWith: opts.failSignInWith ?? null,
     refreshTo: opts.refreshTo ?? null,
     changed: [],
+    uploads: [],
+    failUpload: null,
     async getAccessToken() { return g.token },
     async refresh() { g.token = g.refreshTo; return g.refreshTo },
     onChange(cb) { g.listeners.push(cb); return () => { g.listeners = g.listeners.filter((l) => l !== cb) } },
@@ -38,11 +42,15 @@ export function fakeGateway(opts: { token?: string | null; failSignInWith?: stri
     async signOut() { g.signOutCalls++; g.token = null; g.listeners.forEach((l) => l(false)) },
     async sendPasswordReset() {},
     async changePassword(_e, current, next) { g.changed.push({ current, next }) },
+    async uploadImage(bucket, path, file) {
+      if (g.failUpload) throw new AuthFailure(g.failUpload)
+      g.uploads.push({ bucket, path, type: file.type, size: file.size })
+    },
   }
   return g
 }
 
-export interface RecordedCall { method: string; path: string; query: URLSearchParams; body: unknown; auth: string | null }
+export interface RecordedCall { method: string; path: string; query: URLSearchParams; body: unknown; auth: string | null; headers: Record<string, string> }
 type Handler = (c: RecordedCall) => { status?: number; body?: unknown } | undefined
 
 /** A fake `fetch` answering from a route table (`'GET /admin/customers'`); every request is recorded. Unmatched requests fail loudly. */
@@ -56,14 +64,18 @@ export function fakeBackend(routes: Record<string, Handler | { status?: number; 
       query: url.searchParams,
       body: init?.body ? JSON.parse(String(init.body)) : undefined,
       auth: (init?.headers as Record<string, string> | undefined)?.Authorization ?? null,
+      headers: (init?.headers as Record<string, string> | undefined) ?? {},
     }
     calls.push(call)
     const key = Object.keys(routes).find((k) => k === `${call.method} ${call.path}`) ?? Object.keys(routes).find((k) => {
+      if (k.endsWith(' *')) return false
+
       const [m, p] = k.split(' ')
       return m === call.method && new RegExp(`^${p.replace(/:[a-z]+/g, '[^/]+')}$`).test(call.path)
     })
-    if (!key) throw new Error(`Unexpected request: ${call.method} ${call.path}`)
-    const r = routes[key]
+    const fallback = routes[`${call.method} *`]
+    if (!key && !fallback) throw new Error(`Unexpected request: ${call.method} ${call.path}`)
+    const r = key ? routes[key] : fallback
     const out = (typeof r === 'function' ? r(call) : r) ?? { body: {} }
     return new Response(out.status === 204 ? null : JSON.stringify(out.body ?? {}), { status: out.status ?? 200, headers: { 'Content-Type': 'application/json' } })
   })

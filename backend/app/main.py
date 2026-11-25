@@ -1,4 +1,6 @@
+import asyncio
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -9,6 +11,10 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.exceptions import AppError
+from app.integrations.push.registry import get_push_provider
+from app.integrations.supabase import create_admin_db_client
+from app.repositories.push_repository import PushGateway
+from app.services.push_dispatch_service import PushDispatcher
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -51,12 +57,49 @@ TAGS = [
     {"name": "Admin - Dashboard", "description": "**Protected - admin only.** Platform summary for the admin console."},
     {"name": "Admin - Customers", "description": "**Protected - admin only.** Customer accounts (status changes only; nothing is deleted)."},
     {"name": "Admin - Vendors", "description": "**Protected - admin only.** Vendor applications, approval/rejection, suspension and account status."},
+    {"name": "Admin - Coupons", "description": "**Protected - admin only.** Discount codes redeemed at product checkout."},
+    {"name": "Admin - Notifications", "description": "**Protected - admin only.** Announcements and notification history (in-app only; push delivery is a later step)."},
+    {"name": "Admin - Reports", "description": "**Protected - admin only.** Read-only reports from SQL aggregates."},
+    {"name": "Admin - Fulfilment", "description": "**Protected - admin only.** Vendor-order (fulfilment) overview."},
+    {"name": "Admin - Audit", "description": "**Protected - admin only.** Administrative audit trail."},
+    {"name": "Devices", "description": "**Protected - customer / vendor.** Register this phone for push notifications (Firebase Cloud Messaging). Tokens are never readable."},
     {"name": "Notifications", "description": "**Protected.** In-app notifications (list, mark read). Push delivery is a later step."},
 ]
 
+def _dispatch_cycle() -> None:
+    client = create_admin_db_client()
+    try:
+        PushDispatcher(PushGateway(client), get_push_provider(), get_settings()).run_once()
+    finally:
+        client.aclose()
+
+
+async def _push_worker(interval: int) -> None:
+    """Sends pending push notifications every `interval` seconds. A failure (FCM down, network) is logged and retried next cycle; it never touches the business tables."""
+    while True:
+        try:
+            await asyncio.to_thread(_dispatch_cycle)
+        except Exception:  # noqa: BLE001
+            logger.exception("push dispatch cycle failed")
+        await asyncio.sleep(interval)
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    worker = None
+    if settings.push_dispatch_interval_seconds > 0 and settings.supabase_configured and get_push_provider().is_configured():
+        worker = asyncio.create_task(_push_worker(settings.push_dispatch_interval_seconds))
+    elif settings.push_dispatch_interval_seconds > 0:
+        logger.info("push dispatcher not started: no push provider is configured")
+    yield
+    if worker:
+        worker.cancel()
+
+
 app = FastAPI(
     title=settings.app_name,
-    version="0.9.0",
+    version="0.11.0",
+    lifespan=lifespan,
     description=(
         "Cycle Marketplace backend.\n\n"
         "**Authentication:** sign in with Supabase Auth (email or phone) in the client, then send "

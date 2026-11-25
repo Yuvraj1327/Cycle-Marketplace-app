@@ -2,7 +2,7 @@
 
 A multi-vendor marketplace connecting customers with bicycle shops, used-cycle sellers, spare-parts sellers and cycle servicing providers (including doorstep pickup/drop-off).
 
-**Status:** Step 9 – admin React console (`apps/admin_web`, `docs/admin-web.md`) on top of the vendor app (`docs/vendor-app.md`), customer app (`docs/customer-app.md`) and the backend (migrations 01–18). See `docs/service-booking.md`, `docs/orders-payments.md`, `docs/marketplace-api.md`, `docs/backend-auth.md`, `docs/database-schema.md`. API docs: `http://localhost:8000/docs`.
+**Status:** Step 11 – integration: push notifications (FCM, awaiting Firebase credentials), device registration, cross-app workflows (`docs/integration-audit.md`, `docs/api-integration-map.md`, `docs/storage-architecture.md`, `docs/push-notifications.md`); Step 10 complete admin console (`apps/admin_web`, `docs/admin-web.md`, `docs/admin-operations.md`) on top of the vendor app (`docs/vendor-app.md`), customer app (`docs/customer-app.md`) and the backend (migrations 01–20). See `docs/service-booking.md`, `docs/orders-payments.md`, `docs/marketplace-api.md`, `docs/backend-auth.md`, `docs/database-schema.md`. API docs: `http://localhost:8000/docs`.
 
 ## Technology Stack
 - Customer & Vendor apps: Flutter / Dart

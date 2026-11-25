@@ -28,6 +28,16 @@ class FakeOrderSQL:
     def rows(self, t):
         return self.db.rows(t)
 
+    def _vendor_user(self, vendor_id):
+        v = self.one("vendor_profiles", id=vendor_id)
+        return v["user_id"] if v else None
+
+    def _note(self, user, type_, title, message, rel_type, rel_id, key=None):
+        """Python twin of public.cm_notify / cm_notify_once (real behaviour is covered against PostgreSQL)."""
+        if user is None or (key and any(n["user_id"] == user and n.get("event_key") == key for n in self.rows("notifications"))):
+            return
+        self.new("notifications", user_id=user, type=type_, title=title, message=message, related_type=rel_type, related_id=rel_id, event_key=key, is_read=False)
+
     def one(self, t, **kw):
         return next((r for r in self.rows(t) if all(r.get(k) == v for k, v in kw.items())), None)
 
@@ -100,6 +110,10 @@ class FakeOrderSQL:
         cart = self.one("carts", user_id=p["customer_id"])
         bought = set(wanted)
         self.db.tables["cart_items"] = [i for i in self.rows("cart_items") if not (cart and i["cart_id"] == cart["id"] and i["product_id"] in bought)]
+        self._note(p["customer_id"], "order", "Order placed", f"Your order {order['order_number']} was placed.", "order", order["id"], f"order:{order['id']}:placed")
+        if cod:
+            for v in (x for x in self.rows("vendor_orders") if x["order_id"] == order["id"]):
+                self._note(self._vendor_user(v["vendor_id"]), "order", "New order", f"New order {order['order_number']} is waiting for your response.", "vendor_order", v["id"], f"vo:{v['id']}:new")
         return {"order_id": order["id"], "order_number": order["order_number"], "payment_id": pay["id"], "replay": False}
 
     # ------------------------------------------------------------------ cancellation / fulfilment
@@ -111,10 +125,15 @@ class FakeOrderSQL:
                 if prod:
                     prod["stock_quantity"] += it["quantity"]
 
-    def _cancel_vo(self, vo, status, reason, order):
+    def _cancel_vo(self, vo, status, reason, order, actor=None):
         vo["status"] = status
         vo["rejection_reason" if status == "rejected" else "cancellation_reason"] = reason
+        vo["cancelled_by"] = actor
         self._restore(vo)
+        self._note(order["customer_id"], "order", f"Order {status}", f"Part of order {order['order_number']} was {status}.", "order", order["id"], f"vo:{vo['id']}:{status}:customer")
+        owner = self._vendor_user(vo["vendor_id"])
+        if status == "cancelled" and vo.get("released_at") and actor != owner:         # trigger notify_vendor_order_cancelled
+            self._note(owner, "order", "Order cancelled", f"Order {vo['vendor_order_number']} ({order['order_number']}) was cancelled: {reason}.", "vendor_order", vo["id"], f"vo:{vo['id']}:cancelled")
         pay = next((x for x in self.rows("payments") if x["order_id"] == order["id"] and x["status"] in ("successful", "partially_refunded")), None)
         if pay:
             self.new("refunds", payment_id=pay["id"], order_id=order["id"], vendor_order_id=vo["id"], amount=vo["total_amount"], reason=reason, status="requested",
@@ -143,7 +162,7 @@ class FakeOrderSQL:
             raise cm("not_cancellable", "preparation_started")
         for v in vos:
             if v["status"] in ACTIVE:
-                self._cancel_vo(v, "cancelled", p_reason, o)
+                self._cancel_vo(v, "cancelled", p_reason, o, p_actor)
         self._finalize(o, p_role, p_reason)
         return {"order_id": o["id"]}
 
@@ -157,11 +176,11 @@ class FakeOrderSQL:
         if p_status == "rejected":
             if vo["status"] != "pending":
                 raise cm("invalid_transition", f"{vo['status']}>{p_status}")
-            self._cancel_vo(vo, "rejected", p_note, o)
+            self._cancel_vo(vo, "rejected", p_note, o, p_actor)
         elif p_status == "cancelled":
             if vo["status"] not in ACTIVE[:-1] and not (p_role == "admin" and vo["status"] == "out_for_delivery"):
                 raise cm("invalid_transition", f"{vo['status']}>{p_status}")
-            self._cancel_vo(vo, "cancelled", p_note, o)
+            self._cancel_vo(vo, "cancelled", p_note, o, p_actor)
         else:
             if (vo["status"], p_status) not in VENDOR_FLOW:
                 raise cm("invalid_transition", f"{vo['status']}>{p_status}")
@@ -175,6 +194,7 @@ class FakeOrderSQL:
                          status="ready" if o["payment_status"] in ("successful", "partially_refunded") else "pending", payout_reference=None, settled_at=None)
             if p_note:
                 vo["vendor_note"] = p_note
+            self._note(o["customer_id"], "order", "Order " + p_status.replace("_", " "), f"Order {o['order_number']} is now {p_status.replace('_', ' ')}.", "order", o["id"], f"vo:{vo['id']}:{p_status}")
         self._finalize(o, p_role, p_note)
         return {"vendor_order_id": vo["id"], "status": vo["status"]}
 
@@ -229,10 +249,13 @@ class FakeOrderSQL:
                     for v in self.rows("vendor_orders"):
                         if v["order_id"] == o["id"] and not v["released_at"] and v["status"] == "pending":
                             v["released_at"] = NOW
+                            self._note(self._vendor_user(v["vendor_id"]), "order", "New order", f"New order {o['order_number']} is waiting for your response.", "vendor_order", v["id"], f"vo:{v['id']}:new")
+                    self._note(o["customer_id"], "payment", "Payment received", f"We received your payment for order {o['order_number']}.", "order", o["id"], f"order:{o['id']}:paid")
                     outcome = "applied"
         elif t == "payment.failed" and pay["status"] in ("pending", "processing"):
             pay.update(status="failed", failure_reason=p.get("failure_reason"))
             o["payment_status"] = "failed"
+            self._note(o["customer_id"], "payment", "Payment failed", f"Payment for order {o['order_number']} did not go through.", "order", o["id"], f"order:{o['id']}:payfail:{pay['id']}")
             outcome = "applied"
         elif t == "payment.processing" and pay["status"] == "pending":
             pay["status"] = "processing"
@@ -374,3 +397,192 @@ class FakeOrderSQL:
                 "customers": [{"day": d, "count": sum(1 for c in customers if day(c) == d)} for d in days],
                 "vendors": [{"day": d, "count": sum(1 for v in vendors if day(v) == d)} for d in days]},
         }
+
+    # ------------------------------------------------------------------ Step 10: announcements and reports (Python twins of migration 19)
+    def admin_send_announcement(self, p_title, p_message, p_type, p_audience, p_user_ids, p_admin):
+        if p_audience not in ("customers", "vendors", "specific"):
+            raise cm("invalid_audience")
+        wanted = set(p_user_ids or [])
+        people = [p for p in self.rows("profiles") if p["status"] == "active" and (
+            (p_audience == "customers" and p["role"] == "customer") or (p_audience == "vendors" and p["role"] == "vendor")
+            or (p_audience == "specific" and p["id"] in wanted and p["role"] in ("customer", "vendor")))]
+        if not people:
+            raise cm("no_recipients")
+        ann = self.new("announcements", title=p_title, message=p_message, type=p_type, audience=p_audience, recipient_count=len(people), created_by=p_admin)
+        for p in people:
+            self.new("notifications", user_id=p["id"], type=p_type, title=p_title, message=p_message, created_by=p_admin, announcement_id=ann["id"],
+                     is_read=False, read_at=None, related_type=None, related_id=None, event_key=None)
+        return {"id": ann["id"], "recipient_count": len(people)}
+
+    def admin_announcement_stats(self, p_ids):
+        out = {}
+        for i in p_ids:
+            mine = [n for n in self.rows("notifications") if n.get("announcement_id") == i]
+            if mine:
+                out[i] = {"delivered": len(mine), "read": sum(1 for n in mine if n["is_read"]), "push_sent": sum(1 for n in mine if n["push_status"] == "sent"),
+                          "push_failed": sum(1 for n in mine if n["push_status"] in ("failed", "expired")), "push_pending": sum(1 for n in mine if n["push_status"] in ("pending", "sending"))}
+        return out
+
+    def admin_report(self, p_kind, p_from, p_to):
+        from datetime import date, timedelta
+        d0, d1 = date.fromisoformat(p_from), date.fromisoformat(p_to)
+        days = [(d0 + timedelta(days=n)).isoformat() for n in range((d1 - d0).days + 1)]
+        day = lambda ts: str(ts)[:10] if ts else None              # noqa: E731
+        within = lambda ts: day(ts) in days                        # noqa: E731
+        f = lambda v: float(v or 0)                                # noqa: E731
+
+        def by(rows, key):
+            o = {}
+            for r in rows:
+                o[r[key]] = o.get(r[key], 0) + 1
+            return o
+
+        def series(rows, ts_key, value=None):
+            return [{"day": d, "count": sum(1 for r in rows if day(r[ts_key]) == d), **({"value": sum(f(r[value]) for r in rows if day(r[ts_key]) == d)} if value else {})} for d in days]
+
+        def top(rows, key, n=20):
+            return sorted(rows, key=key)[:n]
+
+        orders = [o for o in self.rows("orders") if within(o["created_at"])]
+        vos = [v for v in self.rows("vendor_orders") if v["status"] == "delivered" and within(v.get("delivered_at"))]
+        vendors, profiles = self.rows("vendor_profiles"), self.rows("profiles")
+        vname = {v["id"]: v["business_name"] for v in vendors}
+        books = [b for b in self.rows("service_bookings") if within(b["created_at"])]
+        if p_kind == "orders":
+            live = [o for o in orders if o["status"] != "cancelled"]
+            return {"total": len(orders), "value": sum(f(o["total_amount"]) for o in live), "by_status": by(orders, "status"), "by_payment_method": by(orders, "payment_method"),
+                    "by_payment_status": by(orders, "payment_status"),
+                    "series": [{"day": d, "count": sum(1 for o in orders if day(o["created_at"]) == d), "value": sum(f(o["total_amount"]) for o in live if day(o["created_at"]) == d)} for d in days]}
+        if p_kind == "sales":
+            vids = {v["id"] for v in vos}
+            by_vendor, by_prod = {}, {}
+            for v in vos:
+                t = by_vendor.setdefault(v["vendor_id"], {"vendor_id": v["vendor_id"], "vendor_name": vname.get(v["vendor_id"]), "orders": 0, "sales": 0.0, "commission": 0.0})
+                t["orders"] += 1; t["sales"] += f(v["subtotal"]); t["commission"] += f(v.get("commission_amount"))
+            for it in (i for i in self.rows("order_items") if i["vendor_order_id"] in vids):
+                t = by_prod.setdefault((it.get("product_id"), it["product_name"]), {"product_id": it.get("product_id"), "product_name": it["product_name"], "units": 0, "sales": 0.0})
+                t["units"] += it["quantity"]; t["sales"] += f(it["line_total"])
+            return {"delivered_orders": len(vos), "gross_sales": sum(f(v["subtotal"]) for v in vos), "delivery_charges": sum(f(v["delivery_charge"]) for v in vos),
+                    "discounts": sum(f(v["discount_amount"]) for v in vos), "commission": sum(f(v.get("commission_amount")) for v in vos),
+                    "series": [{"day": d, "count": sum(1 for v in vos if day(v["delivered_at"]) == d), "value": sum(f(v["subtotal"]) for v in vos if day(v["delivered_at"]) == d)} for d in days],
+                    "by_vendor": top(by_vendor.values(), lambda t: (-t["sales"], t["vendor_name"] or "")), "by_product": top(by_prod.values(), lambda t: (-t["sales"], t["product_name"]))}
+        if p_kind == "vendors":
+            owners = {p["id"]: p for p in profiles}
+            perf = []
+            for v in vendors:
+                mine = [x for x in vos if x["vendor_id"] == v["id"]]
+                perf.append({"vendor_id": v["id"], "business_name": v["business_name"], "verification_status": v["verification_status"],
+                             "products": sum(1 for p in self.rows("products") if p["vendor_id"] == v["id"]), "orders_delivered": len(mine), "sales": sum(f(x["subtotal"]) for x in mine),
+                             "bookings_completed": sum(1 for b in self.rows("service_bookings") if b["vendor_id"] == v["id"] and b["status"] == "completed" and within(b.get("completed_at")))})
+            return {"total": len(vendors), "new_in_period": sum(1 for v in vendors if within(v["created_at"])), "by_verification": by(vendors, "verification_status"),
+                    "by_account_status": by([{"s": owners[v["user_id"]]["status"]} for v in vendors if v["user_id"] in owners], "s"), "series": series(vendors, "created_at"),
+                    "performance": top(perf, lambda t: (-t["sales"], t["business_name"]))}
+        if p_kind == "customers":
+            cust = [p for p in profiles if p["role"] == "customer"]
+            active = {o["customer_id"] for o in orders} | {b["customer_id"] for b in books}
+            names = {p["id"]: p.get("full_name") for p in cust}
+            agg = {}
+            for o in orders:
+                t = agg.setdefault(o["customer_id"], {"customer_id": o["customer_id"], "full_name": names.get(o["customer_id"]), "orders": 0, "order_value": 0.0, "bookings": 0})
+                t["orders"] += 1; t["order_value"] += f(o["total_amount"]) if o["status"] != "cancelled" else 0
+                t["bookings"] = sum(1 for b in books if b["customer_id"] == o["customer_id"])
+            return {"total": len(cust), "new_in_period": sum(1 for c in cust if within(c["created_at"])), "by_status": by(cust, "status"), "active_in_period": len(active),
+                    "orders_in_period": len(orders), "bookings_in_period": len(books), "series": series(cust, "created_at"),
+                    "top_customers": top(agg.values(), lambda t: (-t["orders"], -t["order_value"], t["full_name"] or ""), 10)}
+        if p_kind == "services":
+            bids = {b["id"] for b in books}
+            pr = [r for r in self.rows("pickup_dropoff_requests") if r["booking_id"] in bids]
+            cats = {c["id"]: c["name"] for c in self.rows("service_categories")}
+            by_v, by_c = {}, {}
+            for b in books:
+                t = by_v.setdefault(b["vendor_id"], {"vendor_id": b["vendor_id"], "vendor_name": vname.get(b["vendor_id"]), "total": 0, "completed": 0, "cancelled_or_rejected": 0})
+                t["total"] += 1; t["completed"] += b["status"] == "completed"; t["cancelled_or_rejected"] += b["status"] in ("cancelled", "rejected")
+                c = by_c.setdefault(cats.get(b.get("service_category_id"), "Uncategorised"), {"category_name": cats.get(b.get("service_category_id"), "Uncategorised"), "total": 0})
+                c["total"] += 1
+            return {"total": len(books), "by_status": by(books, "status"),
+                    "completed_value": sum(f(b.get("final_price") or b["estimated_price"]) for b in books if b["status"] == "completed"), "series": series(books, "created_at"),
+                    "by_vendor": top(by_v.values(), lambda t: (-t["total"], t["vendor_name"] or "")), "by_category": top(by_c.values(), lambda t: (-t["total"], t["category_name"])),
+                    "pickup": {"bookings_needing_pickup": sum(1 for b in books if b.get("needs_pickup_dropoff")), "requests": len(pr),
+                               "pickup_by_status": by(pr, "pickup_status"), "delivery_by_status": by(pr, "delivery_status")}}
+        if p_kind == "payments":
+            pays = [p for p in self.rows("payments") if within(p["created_at"])]
+            paid = [p for p in self.rows("payments") if p["status"] in ("successful", "partially_refunded", "refunded") and within(p.get("paid_at"))]
+            rfs = [r for r in self.rows("refunds") if within(r["created_at"])]
+            agg = lambda rows, key: {k: {"count": sum(1 for r in rows if r[key] == k), "amount": sum(f(r["amount"]) for r in rows if r[key] == k)} for k in {r[key] for r in rows}}  # noqa: E731
+            return {"total": len(pays), "by_status": agg(pays, "status"), "by_method": agg(pays, "method"), "collected": sum(f(p["amount"]) for p in paid),
+                    "collected_by_method": agg(paid, "method"), "refunded": sum(f(r["amount"]) for r in self.rows("refunds") if r["status"] == "processed" and within(r.get("processed_at"))),
+                    "refunds_by_status": agg(rfs, "status"), "commission": sum(f(v.get("commission_amount")) for v in vos),
+                    "series": [{"day": d, "count": sum(1 for p in paid if day(p["paid_at"]) == d), "value": sum(f(p["amount"]) for p in paid if day(p["paid_at"]) == d)} for d in days]}
+        raise cm("invalid_report")
+
+    # ------------------------------------------------------------------ Step 11: device tokens and the push outbox (Python twins of migration 20)
+    def register_device_token(self, p_user, p_token, p_platform, p_app, p_label, p_version):
+        if len(p_token) < 20 or p_platform not in ("android", "ios", "web") or p_app not in ("customer", "vendor"):
+            raise cm("invalid_device")
+        row = self.one("device_tokens", token=p_token)
+        if row:
+            row.update(user_id=p_user, platform=p_platform, app=p_app, device_label=p_label, app_version=p_version, is_active=True, last_error=None, last_seen_at=self.db.now())
+        else:
+            row = self.new("device_tokens", user_id=p_user, token=p_token, platform=p_platform, app=p_app, device_label=p_label, app_version=p_version, is_active=True, last_error=None, last_seen_at=self.db.now())
+        mine = sorted((r for r in self.rows("device_tokens") if r["user_id"] == p_user and r["is_active"]), key=lambda r: (r["last_seen_at"], r["created_at"]), reverse=True)
+        for r in mine[10:]:
+            r["is_active"] = False
+        return row["id"]
+
+    def deactivate_device_token(self, p_user, p_token):
+        row = self.one("device_tokens", token=p_token, user_id=p_user, is_active=True)
+        if row:
+            row.update(is_active=False, last_error="signed out")
+        return 1 if row else 0
+
+    def claim_pending_pushes(self, p_limit, p_max_attempts, p_max_age):
+        hours = int(str(p_max_age).split()[0])
+        out = []
+        for n in sorted(self.rows("notifications"), key=lambda r: r["created_at"]):
+            if n.get("push_status") not in ("pending", "sending"):
+                continue
+            if self.db.age_hours(n["created_at"]) > hours:
+                n.update(push_status="expired", push_error="too old to push")
+                continue
+            if n["push_attempts"] >= p_max_attempts:
+                n.update(push_status="failed", push_error=n.get("push_error") or "gave up after repeated attempts")
+                continue
+            owner = self.db.profile(n["user_id"])
+            if n["push_status"] == "pending" and not (owner and owner["status"] == "active"):
+                n.update(push_status="skipped", push_error="recipient account is not active")
+                continue
+            if n["push_status"] == "sending" or n.get("push_next_at") and n["push_next_at"] > self.db.now():     # leased, or waiting for its back-off
+                continue
+            if len(out) >= p_limit:
+                break
+            n.update(push_status="sending", push_attempts=n["push_attempts"] + 1)
+            toks = sorted((t for t in self.rows("device_tokens") if t["user_id"] == n["user_id"] and t["is_active"]), key=lambda t: t["last_seen_at"], reverse=True)
+            out.append({"id": n["id"], "user_id": n["user_id"], "type": n["type"], "title": n["title"], "message": n["message"], "related_type": n.get("related_type"),
+                        "related_id": n.get("related_id"), "attempts": n["push_attempts"], "tokens": [{"id": t["id"], "token": t["token"], "platform": t["platform"], "app": t["app"]} for t in toks]})
+        return out
+
+    def finish_push(self, p_id, p_status, p_error, p_retry_seconds, p_invalid_token_ids):
+        if p_status not in ("sent", "failed", "skipped", "pending"):
+            raise cm("invalid_push_status")
+        for t in self.rows("device_tokens"):
+            if t["id"] in (p_invalid_token_ids or []):
+                t.update(is_active=False, last_error="rejected by the push provider")
+        n = self.one("notifications", id=p_id)
+        if n and n["push_status"] == "sending":
+            n.update(push_status=p_status, push_error=(p_error or None) and p_error[:300])
+            if p_status == "sent":
+                n["push_sent_at"] = self.db.now()
+            if p_status == "pending":
+                n["push_next_at"] = self.db.future(p_retry_seconds or 60)
+
+    def admin_push_status(self):
+        by, dev = {}, {}
+        for n in self.rows("notifications"):
+            by[n["push_status"]] = by.get(n["push_status"], 0) + 1
+        for t in self.rows("device_tokens"):
+            if t["is_active"]:
+                dev[t["app"]] = dev.get(t["app"], 0) + 1
+        pend = [n["created_at"] for n in self.rows("notifications") if n["push_status"] == "pending"]
+        fails = [{"id": n["id"], "title": n["title"], "push_error": n.get("push_error"), "push_attempts": n["push_attempts"], "created_at": n["created_at"]} for n in self.rows("notifications") if n["push_status"] == "failed"]
+        return {"by_status": by, "active_devices": dev, "oldest_pending": min(pend) if pend else None, "recent_failures": fails[:5]}
+

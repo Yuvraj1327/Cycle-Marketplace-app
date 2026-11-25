@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Query, Response, status
@@ -7,12 +7,13 @@ from postgrest import SyncPostgrestClient
 from app.api.v1.responses import E400, E404, E409, E422, PROTECTED
 from app.core.dependencies import CurrentUser, get_admin_db, get_provider, get_user_db, require_admin
 from app.integrations.payments.base import PaymentProvider
-from app.schemas.admin_config import CommissionRuleCreate, CommissionRuleOut, CommissionRuleUpdate, SettingOut, SettingUpdate
+from app.schemas.admin_config import CommissionRuleCreate, CommissionRuleOut, CommissionRuleUpdate, ResolvedRule, SettingOut, SettingUpdate
+from app.schemas.admin_ops import AdminTimelineEvent, PaymentProviderInfo
 from app.schemas.common import Page
 from app.schemas.order import AdminOrderOut, AdminStatusUpdate, OrderStatus, PaymentMethod, PaymentStatus
 from app.schemas.payment import AdminPaymentDetail, AdminPaymentOut, RevenueSummary
 from app.schemas.refund import RefundAction, RefundCreate, RefundOut, RefundStatus
-from app.schemas.settlement import MarkPaid, SettlementOut, SettlementPage
+from app.schemas.settlement import AdminSettlementPage, MarkPaid, SettlementOut
 from app.services.admin_config_service import AdminConfigService
 from app.services.admin_order_service import AdminOrderService
 from app.services.payment_service import PaymentService
@@ -42,14 +43,17 @@ def refund_service(db: SyncPostgrestClient = Depends(get_user_db), admin_db: Syn
 
 
 # ---------------- orders
-@orders.get("", response_model=Page[AdminOrderOut], summary="All orders", description=ADMIN + " Filter by status, payment status/method, vendor, customer; "
-            "`q` searches the order number.", responses=E422)
+@orders.get("", response_model=Page[AdminOrderOut], summary="All orders", description=ADMIN + " Filter by status, payment status/method, vendor, customer, order date "
+            "(`date_from`/`date_to`, platform-local days); `q` searches the order number, the customer (name/e-mail/phone) or the seller's business name; "
+            "`sort`: newest|oldest|amount_high|amount_low.", responses=E422)
 def list_orders(status: OrderStatus | None = None, payment_status: PaymentStatus | None = None, payment_method: PaymentMethod | None = None,
                 vendor_id: UUID | None = None, customer_id: UUID | None = None, q: str | None = Query(None, max_length=40),
+                date_from: date | None = None, date_to: date | None = None, sort: str = Query("newest", pattern="^(newest|oldest|amount_high|amount_low)$"),
                 page: int = Query(1, ge=1, le=10_000), limit: int = Query(20, ge=1, le=100),
                 _a: CurrentUser = Depends(require_admin), service: AdminOrderService = Depends(order_service)):
     return service.list(status=status.value if status else None, payment_status=payment_status.value if payment_status else None,
-                        payment_method=payment_method.value if payment_method else None, vendor_id=vendor_id, customer_id=customer_id, q=q, page=page, limit=limit)
+                        payment_method=payment_method.value if payment_method else None, vendor_id=vendor_id, customer_id=customer_id, q=q,
+                        date_from=date_from, date_to=date_to, sort=sort, page=page, limit=limit)
 
 
 @orders.post("/expire-unpaid", summary="Cancel overdue unpaid online orders", description=ADMIN + " Returns reserved stock for online orders whose payment window "
@@ -63,6 +67,12 @@ def get_order(order_id: UUID, _a: CurrentUser = Depends(require_admin), service:
     return service.get(order_id)
 
 
+@orders.get("/{order_id}/timeline", response_model=list[AdminTimelineEvent], summary="Order status history",
+            description=ADMIN + " Every recorded status change of the order and its vendor orders, oldest first, with who made it.", responses={**E404, **E422})
+def order_timeline(order_id: UUID, _a: CurrentUser = Depends(require_admin), service: AdminOrderService = Depends(order_service)):
+    return service.timeline(order_id)
+
+
 @orders.patch("/{order_id}/status", response_model=AdminOrderOut, summary="Cancel an order / change one vendor order",
               description=ADMIN + " Without `vendor_order_id`: only `cancelled` (reason required) - stock is returned once and a refund is requested if paid. "
               "With `vendor_order_id`: that vendor order follows the vendor state machine (admins may cancel any active one).", responses={**E404, **E409, **E422})
@@ -72,12 +82,12 @@ def set_status(order_id: UUID, body: AdminStatusUpdate, admin: CurrentUser = Dep
 
 # ---------------- payments
 @payments.get("", response_model=Page[AdminPaymentOut], summary="Transactions", description=ADMIN + " Filter by status, method, order, customer, `needs_review` "
-              "(amount mismatches, late/duplicate payments).", responses=E422)
+              "(amount mismatches, late/duplicate payments), date range; `q` searches provider references, the order number or the customer.", responses=E422)
 def list_payments(status: PaymentStatus | None = None, method: PaymentMethod | None = None, order_id: UUID | None = None, customer_id: UUID | None = None,
-                  needs_review: bool | None = None, page: int = Query(1, ge=1, le=10_000), limit: int = Query(20, ge=1, le=100),
+                  needs_review: bool | None = None, q: str | None = Query(None, max_length=60), date_from: date | None = None, date_to: date | None = None, page: int = Query(1, ge=1, le=10_000), limit: int = Query(20, ge=1, le=100),
                   _a: CurrentUser = Depends(require_admin), service: AdminOrderService = Depends(order_service)):
     return service.list_payments(status=status.value if status else None, method=method.value if method else None, order_id=order_id,
-                                 customer_id=customer_id, needs_review=needs_review, page=page, limit=limit)
+                                 customer_id=customer_id, needs_review=needs_review, q=q, date_from=date_from, date_to=date_to, page=page, limit=limit)
 
 
 @payments.get("/summary", response_model=RevenueSummary, summary="Platform revenue summary", description=ADMIN + " Collected, refunded, commission earned, "
@@ -85,6 +95,13 @@ def list_payments(status: PaymentStatus | None = None, method: PaymentMethod | N
 def revenue(date_from: datetime | None = Query(None, alias="from"), date_to: datetime | None = Query(None, alias="to"),
             _a: CurrentUser = Depends(require_admin), service: AdminOrderService = Depends(order_service)):
     return service.revenue(date_from, date_to)
+
+
+@payments.get("/provider", response_model=PaymentProviderInfo, summary="Is an online payment provider configured?",
+              description=ADMIN + " Only whether one is configured and its name - never any credential.")
+def provider_info(_a: CurrentUser = Depends(require_admin), provider: PaymentProvider = Depends(get_provider)):
+    configured = bool(provider.is_configured())
+    return {"configured": configured, "provider": provider.name or None if configured else None, "refunds_via_provider": configured}
 
 
 @payments.get("/{payment_id}", response_model=AdminPaymentDetail, summary="Payment with provider events and refunds", description=ADMIN, responses={**E404, **E422})
@@ -107,10 +124,11 @@ def reconcile(payment_id: UUID, admin: CurrentUser = Depends(require_admin), ser
 
 
 # ---------------- refunds
-@refunds.get("", response_model=Page[RefundOut], summary="Refund records", description=ADMIN, responses=E422)
-def list_refunds(status: RefundStatus | None = None, order_id: UUID | None = None, payment_id: UUID | None = None, page: int = Query(1, ge=1, le=10_000),
+@refunds.get("", response_model=Page[RefundOut], summary="Refund records", description=ADMIN + " `q` searches the order number, provider refund reference or reason.", responses=E422)
+def list_refunds(status: RefundStatus | None = None, order_id: UUID | None = None, payment_id: UUID | None = None, q: str | None = Query(None, max_length=60),
+                 date_from: date | None = None, date_to: date | None = None, page: int = Query(1, ge=1, le=10_000),
                  limit: int = Query(20, ge=1, le=100), _a: CurrentUser = Depends(require_admin), service: RefundService = Depends(refund_service)):
-    return service.list(status=status.value if status else None, order_id=order_id, payment_id=payment_id, page=page, limit=limit)
+    return service.list(status=status.value if status else None, order_id=order_id, payment_id=payment_id, q=q, date_from=date_from, date_to=date_to, page=page, limit=limit)
 
 
 @refunds.post("", response_model=RefundOut, status_code=status.HTTP_201_CREATED, summary="Create a refund request",
@@ -136,12 +154,14 @@ def refund_action(refund_id: UUID, body: RefundAction, admin: CurrentUser = Depe
 
 
 # ---------------- settlements
-@settlements.get("", response_model=SettlementPage, summary="Vendor settlement records",
-                 description=ADMIN + " Gross, commission, deductions, net per delivered vendor order, with totals by status. Records only - no payout is executed.", responses=E422)
-def list_settlements(vendor_id: UUID | None = None, status: str | None = Query(None, pattern="^(pending|ready|paid|cancelled)$"), page: int = Query(1, ge=1, le=10_000),
+@settlements.get("", response_model=AdminSettlementPage, summary="Vendor settlement records",
+                 description=ADMIN + " Gross, commission, deductions, net per delivered vendor order, with totals by status (all time). Records only - no payout is executed. "
+                 "`date_from`/`date_to` filter by the day the record was created.", responses=E422)
+def list_settlements(vendor_id: UUID | None = None, status: str | None = Query(None, pattern="^(pending|ready|paid|cancelled)$"), date_from: date | None = None,
+                     date_to: date | None = None, page: int = Query(1, ge=1, le=10_000),
                      limit: int = Query(20, ge=1, le=100), db: SyncPostgrestClient = Depends(get_user_db), admin_db: SyncPostgrestClient = Depends(get_admin_db),
                      _a: CurrentUser = Depends(require_admin)):
-    return SettlementService(db, admin_db).list(vendor_id=vendor_id, status=status, page=page, limit=limit)
+    return SettlementService(db, admin_db).list(vendor_id=vendor_id, status=status, date_from=date_from, date_to=date_to, page=page, limit=limit, with_vendor_names=True)
 
 
 @settlements.post("/{settlement_id}/mark-paid", response_model=SettlementOut, summary="Record that a vendor was paid (outside this system)",
@@ -175,9 +195,17 @@ def list_rules(_a: CurrentUser = Depends(require_admin), service: AdminConfigSer
     return service.list_rules()
 
 
+@config.get("/commission-rules/resolve", response_model=ResolvedRule, summary="Which commission rule applies right now?",
+            description=ADMIN + " Uses the same selection function as checkout: vendor-specific, then category-specific, then global; then priority; then newest.", responses=E422)
+def resolve_rule(vendor_id: UUID | None = None, category_id: UUID | None = None, _a: CurrentUser = Depends(require_admin),
+                 service: AdminConfigService = Depends(config_service)):
+    return service.resolve_rule(vendor_id, category_id)
+
+
 @config.post("/commission-rules", response_model=CommissionRuleOut, status_code=status.HTTP_201_CREATED, summary="Create a commission rule",
              description=ADMIN + " Most specific active rule wins: vendor-specific, then category-specific, then global; then `priority`. `percentage` = % of the "
-             "item value; `fixed` = flat amount per unit. Orders snapshot the rate they used, so later changes never alter past orders.", responses=E422)
+             "item value; `fixed` = flat amount per unit. Orders snapshot the rate they used, so later changes never alter past orders. Two ACTIVE rules with the same "
+             "scope and priority and overlapping dates are refused (409 commission_rule_conflict).", responses={**E409, **E422})
 def create_rule(body: CommissionRuleCreate, admin: CurrentUser = Depends(require_admin), service: AdminConfigService = Depends(config_service)):
     return service.create_rule(admin, body)
 

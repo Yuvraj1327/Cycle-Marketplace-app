@@ -259,7 +259,7 @@ def test_booking_notifications_for_customer_vendor_and_admin(client, swd):
     for s in ("in_service", "ready_for_delivery", "completed"):
         client.patch(f"{VB}/{b['id']}/status", json={"status": s}, headers=swd.hva)
     titles = [n["title"] for n in notes_for(swd, swd.cust)]
-    assert titles == ["Booking received", "Booking accepted", "in_service", "ready_for_delivery", "completed"]
+    assert titles == ["Booking received", "Booking accepted", "Repair started", "Ready for delivery", "Service completed"]       # the same wording the SQL function writes
     assert all(n["related_id"] == b["id"] and n["related_type"] == "service_booking" for n in notes_for(swd, swd.cust))
     assert len(notes_for(swd, swd.other)) == 0 and len(notes_for(swd, swd.ub)) == 0                  # unrelated users get nothing
 

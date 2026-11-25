@@ -3,6 +3,14 @@ from postgrest.types import CountMethod
 from app.repositories.base import BaseRepository, Row, day_range
 
 
+ORDER_SORTS: dict[str, list[tuple[str, bool]]] = {
+    "newest": [("created_at", True), ("id", False)],
+    "oldest": [("created_at", False), ("id", False)],
+    "amount_high": [("total_amount", True), ("created_at", True), ("id", False)],
+    "amount_low": [("total_amount", False), ("created_at", True), ("id", False)],
+}
+
+
 class OrderRepository(BaseRepository):
     """READ access to orders and their children. Always used with a user-scoped client (RLS) except in admin services
     where the admin's own token is used. All writes go through OrderGateway (SQL functions)."""
@@ -15,7 +23,7 @@ class OrderRepository(BaseRepository):
     # ---- orders
     def list_orders(self, *, customer_id: str | None = None, order_ids: list[str] | None = None, status: str | None = None,
                     payment_status: str | None = None, payment_method: str | None = None, number_like: str | None = None,
-                    page: int = 1, limit: int = 20) -> tuple[list[Row], int]:
+                    page: int = 1, limit: int = 20, or_expr: str | None = None, date_from=None, date_to=None, sort: str = "newest") -> tuple[list[Row], int]:
         q = self.client.table("orders").select("*", count=CountMethod.exact)
         if customer_id:
             q = q.eq("customer_id", customer_id)
@@ -29,8 +37,13 @@ class OrderRepository(BaseRepository):
             q = q.eq("payment_method", payment_method)
         if number_like:
             q = q.ilike("order_number", f"*{number_like}*")
+        if or_expr:
+            q = q.or_(or_expr)          # built by the admin service from sanitised text and database ids only
+        q = day_range(q, "created_at", date_from, date_to)
+        for col, desc in ORDER_SORTS[sort]:
+            q = q.order(col, desc=desc)
         offset = (page - 1) * limit
-        res = self._run(q.order("created_at", desc=True).order("id").range(offset, offset + limit - 1))
+        res = self._run(q.range(offset, offset + limit - 1))
         return res.data, res.count or 0
 
     def find(self, order_id: str, *, customer_id: str | None = None) -> Row | None:
@@ -89,6 +102,11 @@ class OrderRepository(BaseRepository):
 
     def vendor_order_ids_for_vendor(self, vendor_id: str) -> list[str]:
         return [r["order_id"] for r in self._run(self.client.table("vendor_orders").select("order_id").eq("vendor_id", vendor_id)).data]
+
+    def order_ids_for_vendors(self, vendor_ids: list[str], limit: int = 500) -> list[str]:
+        if not vendor_ids:
+            return []
+        return [r["order_id"] for r in self._run(self.client.table("vendor_orders").select("order_id").in_("vendor_id", vendor_ids).limit(limit)).data]
 
     def vendor_names(self, vendor_ids: list[str]) -> dict[str, str]:
         """Public seller names (approved vendors only), from the safe public view."""

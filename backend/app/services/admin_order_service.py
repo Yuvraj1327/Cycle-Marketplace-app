@@ -6,7 +6,8 @@ from uuid import UUID
 from app.core.dependencies import CurrentUser
 from app.core.exceptions import NotFoundError, unprocessable
 from app.core.money import ZERO, q2
-from app.core.search import sanitize_term
+from app.core.search import contains_pattern, sanitize_term
+from app.repositories.admin_ops_repository import DirectoryRepository
 from app.repositories.commerce_config_repository import AuditRepository
 from app.repositories.order_gateway import OrderGateway
 from app.repositories.order_repository import OrderRepository
@@ -27,22 +28,48 @@ class AdminOrderService:
         self.settlements = SettlementRepository(db)
         self.gateway = OrderGateway(admin_db)
         self.audit = AuditRepository(admin_db)
+        self.people = DirectoryRepository(db)
 
     # ---------------- orders
-    def list(self, *, status, payment_status, payment_method, vendor_id, customer_id, q, page: int, limit: int) -> dict:
+    def list(self, *, status, payment_status, payment_method, vendor_id, customer_id, q, page: int, limit: int, date_from=None, date_to=None, sort: str = "newest") -> dict:
         order_ids = self.orders.vendor_order_ids_for_vendor(str(vendor_id)) if vendor_id else None
-        number = sanitize_term(q or "", 40) or None
-        if q and not number:
+        term = sanitize_term(q or "", 40, allow_at=True) or None
+        if q and not term:
             return _catalog.page([], 0, page, limit)
         rows, total = self.orders.list_orders(customer_id=str(customer_id) if customer_id else None, order_ids=order_ids, status=status,
-                                              payment_status=payment_status, payment_method=payment_method, number_like=number, page=page, limit=limit)
+                                              payment_status=payment_status, payment_method=payment_method, or_expr=self._order_search(term) if term else None,
+                                              date_from=date_from, date_to=date_to, sort=sort, page=page, limit=limit)
         return _catalog.page(self._admin_views(rows) if rows else [], total, page, limit)
+
+    def _order_search(self, term: str) -> str:
+        """order number, OR customer name / e-mail / phone, OR the seller's business name. Only sanitised text and database ids enter the filter."""
+        clauses = [f"order_number.ilike.{contains_pattern(term)}"]
+        customers = self.people.customer_ids_matching(term)
+        if customers:
+            clauses.append(f"customer_id.in.({','.join(customers)})")
+        by_vendor = self.orders.order_ids_for_vendors(self.people.vendor_ids_matching(term))
+        if by_vendor:
+            clauses.append(f"id.in.({','.join(sorted(set(by_vendor)))})")
+        return ",".join(clauses)
 
     def get(self, order_id: UUID) -> dict:
         order = self.orders.find(str(order_id))
         if order is None:
             raise NotFoundError("Order not found.")
         return self._admin_views([order])[0]
+
+    def timeline(self, order_id: UUID) -> list[dict]:
+        """Every recorded status change of the order and of its vendor orders, oldest first, with who made it."""
+        order = self.orders.find(str(order_id))
+        if order is None:
+            raise NotFoundError("Order not found.")
+        vos = {v["id"]: v for v in self.orders.vendor_orders_for([order["id"]])}
+        rows = self.orders.history(order["id"])
+        people = self.people.profiles([r["changed_by"] for r in rows if r.get("changed_by")], "id,full_name,role")
+        return [{"at": h["created_at"], "scope": "vendor_order" if h.get("vendor_order_id") else "order", "vendor_order_id": h.get("vendor_order_id"),
+                 "vendor_name": (vos.get(h.get("vendor_order_id")) or {}).get("vendor_name"), "from_status": h.get("from_status"), "to_status": h["to_status"], "note": h.get("note"),
+                 "changed_by_id": h.get("changed_by"), "changed_by_name": (people.get(h.get("changed_by")) or {}).get("full_name"),
+                 "changed_by_role": (people.get(h.get("changed_by")) or {}).get("role")} for h in rows]
 
     def set_status(self, admin: CurrentUser, order_id: UUID, body: AdminStatusUpdate) -> dict:
         order = self.orders.find(str(order_id))
@@ -68,17 +95,38 @@ class AdminOrderService:
         return {"cancelled": n}
 
     # ---------------- payments
-    def list_payments(self, *, status, method, order_id, customer_id, needs_review, page: int, limit: int) -> dict:
-        rows, total = self.payments.list_payments(status=status, method=method, order_id=str(order_id) if order_id else None,
-                                                  customer_id=str(customer_id) if customer_id else None, needs_review=needs_review, page=page, limit=limit)
-        return _catalog.page([self._payment(p) for p in rows], total, page, limit)
+    def list_payments(self, *, status, method, order_id, customer_id, needs_review, page: int, limit: int, q=None, date_from=None, date_to=None) -> dict:
+        term = sanitize_term(q or "", 60, allow_at=True) or None
+        if q and not term:
+            return _catalog.page([], 0, page, limit)
+        rows, total = self.payments.list_payments(status=status, method=method, order_id=str(order_id) if order_id else None, customer_id=str(customer_id) if customer_id else None,
+                                                  needs_review=needs_review, or_expr=self._payment_search(term) if term else None, date_from=date_from, date_to=date_to,
+                                                  page=page, limit=limit)
+        return _catalog.page(self._payment_views(rows), total, page, limit)
+
+    def _payment_search(self, term: str) -> str:
+        """provider references, OR the order number, OR the customer."""
+        pat = contains_pattern(term)
+        clauses = [f"provider_order_id.ilike.{pat}", f"provider_payment_id.ilike.{pat}"]
+        orders = self.people.order_ids_matching_number(term)
+        if orders:
+            clauses.append(f"order_id.in.({','.join(orders)})")
+        customers = self.people.customer_ids_matching(term)
+        if customers:
+            clauses.append(f"customer_id.in.({','.join(customers)})")
+        return ",".join(clauses)
+
+    def _payment_views(self, rows: list[dict]) -> list[dict]:
+        orders = self.payments.orders_by_ids([r["order_id"] for r in rows if r.get("order_id")])
+        names = self.people.profiles([r["customer_id"] for r in rows], "id,full_name")
+        return [{**self._payment(p), "order_number": (orders.get(p.get("order_id")) or {}).get("order_number"), "customer_name": (names.get(p["customer_id"]) or {}).get("full_name")} for p in rows]
 
     def payment_detail(self, payment_id: UUID) -> dict:
         p = self.payments.find(str(payment_id))
         if p is None:
             raise NotFoundError("Payment not found.")
         order = self.orders.find(p["order_id"]) if p.get("order_id") else None
-        return {**self._payment(p), "order": {k: order[k] for k in ("id", "order_number", "status", "payment_status", "total_amount")} if order else None,
+        return {**self._payment_views([p])[0], "order": {k: order[k] for k in ("id", "order_number", "status", "payment_status", "total_amount")} if order else None,
                 "events": self.payments.events_for(p["id"]), "refunds": self.payments.refunds_for_payments([p["id"]])}
 
     def revenue(self, start: datetime | None, end: datetime | None) -> dict:

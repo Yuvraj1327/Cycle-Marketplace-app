@@ -4,6 +4,8 @@ from app.api.v1.endpoints import (
     addresses,
     admin,
     admin_commerce,
+    admin_ops,
+    devices,
     admin_users,
     admin_services,
     auth,
@@ -64,3 +66,11 @@ api_router.include_router(admin_users.customers)
 api_router.include_router(admin_users.vendors)
 api_router.include_router(admin_services.tickets)
 api_router.include_router(notifications.router)
+api_router.include_router(admin_ops.coupons)
+api_router.include_router(admin_ops.announcements)
+api_router.include_router(admin_ops.notifications)
+api_router.include_router(admin_ops.reports)
+api_router.include_router(admin_ops.fulfilment)
+api_router.include_router(admin_ops.audit)
+api_router.include_router(devices.devices)
+api_router.include_router(devices.admin_push)

@@ -43,6 +43,8 @@ class AdminPaymentOut(PaymentOut):
     review_reason: str | None
     recorded_by: UUID | None
     provider_payment_id: str | None
+    order_number: str | None = None
+    customer_name: str | None = None
 
 
 class AdminPaymentDetail(AdminPaymentOut):

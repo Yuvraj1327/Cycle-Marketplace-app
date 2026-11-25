@@ -6,6 +6,7 @@ from postgrest import SyncPostgrestClient
 
 from app.api.v1.responses import E400, E404, E409, E422, PROTECTED
 from app.core.dependencies import CurrentUser, get_admin_db, get_user_db, require_admin
+from app.schemas.admin_ops import AdminTimelineEvent, ServiceStatusUpdate
 from app.schemas.booking import AdminBookingDetail, AdminBookingListItem, AdminStatusUpdate, BookingStatus, LogisticsUpdate, PickupListItem
 from app.schemas.common import Page
 from app.schemas.service import AdminServiceCategoryOut, AdminServiceOut, ServiceCategoryCreate, ServiceCategoryUpdate
@@ -56,11 +57,11 @@ def delete_category(category_id: UUID, _a: CurrentUser = Depends(require_admin),
 
 
 # ---------------- services
-@services.get("", response_model=Page[AdminServiceOut], summary="All vendor services", description=ADMIN + " Filter by vendor, category, active flag or name.", responses=E422)
-def list_services(vendor_id: UUID | None = None, category_id: UUID | None = None, is_active: bool | None = None, q: str | None = Query(None, max_length=60),
+@services.get("", response_model=Page[AdminServiceOut], summary="All vendor services", description=ADMIN + " Filter by vendor, category, active flag, availability or name.", responses=E422)
+def list_services(vendor_id: UUID | None = None, category_id: UUID | None = None, is_active: bool | None = None, is_available: bool | None = None, q: str | None = Query(None, max_length=60),
                   page: int = Query(1, ge=1, le=10_000), limit: int = Query(20, ge=1, le=100), _a: CurrentUser = Depends(require_admin),
                   service: AdminBookingService = Depends(booking_service)):
-    return service.list_services(vendor_id=vendor_id, category_id=category_id, is_active=is_active, q=q, page=page, limit=limit)
+    return service.list_services(vendor_id=vendor_id, category_id=category_id, is_active=is_active, is_available=is_available, q=q, page=page, limit=limit)
 
 
 @services.get("/{service_id}", response_model=AdminServiceOut, summary="One service with its provider", description=ADMIN, responses={**E404, **E422})
@@ -68,11 +69,18 @@ def get_service(service_id: UUID, _a: CurrentUser = Depends(require_admin), serv
     return service.get_service(service_id)
 
 
+@services.patch("/{service_id}/status", response_model=AdminServiceOut, summary="Deactivate / re-activate a vendor's service",
+                description=ADMIN + " A reason is required to deactivate; the vendor is notified. Bookings and the service record are preserved. The vendor can re-activate "
+                "their own service - to stop a vendor altogether, suspend the vendor.", responses={**E404, **E409, **E422})
+def set_service_status(service_id: UUID, body: ServiceStatusUpdate, admin: CurrentUser = Depends(require_admin), service: AdminBookingService = Depends(booking_service)):
+    return service.set_service_status(admin, service_id, body.is_active, body.reason)
+
+
 # ---------------- bookings
 @bookings.get("", response_model=Page[AdminBookingListItem], summary="All service bookings",
-              description=ADMIN + " Filter by `status`, `vendor_id`, `customer_id`, preferred-date range, and booking number (`q`).", responses=E422)
+              description=ADMIN + " Filter by `status`, `vendor_id`, `customer_id`, preferred-date range; `q` searches the booking number, the customer or the provider's business name.", responses=E422)
 def list_bookings(status: BookingStatus | None = None, vendor_id: UUID | None = None, customer_id: UUID | None = None, date_from: date | None = None, date_to: date | None = None,
-                  q: str | None = Query(None, max_length=30), page: int = Query(1, ge=1, le=10_000), limit: int = Query(20, ge=1, le=100),
+                  q: str | None = Query(None, max_length=40), page: int = Query(1, ge=1, le=10_000), limit: int = Query(20, ge=1, le=100),
                   _a: CurrentUser = Depends(require_admin), service: AdminBookingService = Depends(booking_service)):
     return service.list(status=status.value if status else None, vendor_id=vendor_id, customer_id=customer_id, date_from=date_from, date_to=date_to, q=q, page=page, limit=limit)
 
@@ -80,6 +88,12 @@ def list_bookings(status: BookingStatus | None = None, vendor_id: UUID | None = 
 @bookings.get("/{booking_id}", response_model=AdminBookingDetail, summary="Booking with customer, provider, cycle, charges, pickup", description=ADMIN, responses={**E404, **E422})
 def get_booking(booking_id: UUID, admin: CurrentUser = Depends(require_admin), service: AdminBookingService = Depends(booking_service)):
     return service.get(booking_id, admin.access_token)
+
+
+@bookings.get("/{booking_id}/timeline", response_model=list[AdminTimelineEvent], summary="Booking / repair status history",
+              description=ADMIN + " Every recorded status change, oldest first, with who made it.", responses={**E404, **E422})
+def booking_timeline(booking_id: UUID, _a: CurrentUser = Depends(require_admin), service: AdminBookingService = Depends(booking_service)):
+    return service.timeline(booking_id)
 
 
 @bookings.patch("/{booking_id}/status", response_model=AdminBookingDetail, summary="Move / reject / cancel a booking",
@@ -91,10 +105,10 @@ def set_status(booking_id: UUID, body: AdminStatusUpdate, admin: CurrentUser = D
 
 # ---------------- pickup / drop-off
 @pickups.get("", response_model=Page[PickupListItem], summary="All pickup and drop-off requests", description=ADMIN + " With booking, provider, customer and both addresses.", responses=E422)
-def list_pickups(pickup_status: str | None = Query(None, pattern="^(pending|scheduled|completed|failed|cancelled)$"),
+def list_pickups(q: str | None = Query(None, max_length=40), pickup_status: str | None = Query(None, pattern="^(pending|scheduled|completed|failed|cancelled)$"),
                  delivery_status: str | None = Query(None, pattern="^(pending|scheduled|completed|failed|cancelled)$"), page: int = Query(1, ge=1, le=10_000),
                  limit: int = Query(20, ge=1, le=100), _a: CurrentUser = Depends(require_admin), service: AdminBookingService = Depends(booking_service)):
-    return service.list_pickups(pickup_status=pickup_status, delivery_status=delivery_status, page=page, limit=limit)
+    return service.list_pickups(pickup_status=pickup_status, delivery_status=delivery_status, q=q, page=page, limit=limit)
 
 
 @pickups.get("/{request_id}", response_model=PickupListItem, summary="One pickup/drop-off request", description=ADMIN, responses={**E404, **E422})

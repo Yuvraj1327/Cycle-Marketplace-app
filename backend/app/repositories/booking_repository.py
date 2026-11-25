@@ -12,7 +12,7 @@ class BookingRepository(BaseRepository):
     def __init__(self, client):
         super().__init__(client)
 
-    def search(self, *, customer_id=None, vendor_id=None, status=None, date_from=None, date_to=None, number_like=None, page=1, limit=20) -> tuple[list[Row], int]:
+    def search(self, *, customer_id=None, vendor_id=None, status=None, date_from=None, date_to=None, number_like=None, page=1, limit=20, or_expr=None) -> tuple[list[Row], int]:
         q = self.client.table(self.table).select("*", count=CountMethod.exact)
         if customer_id:
             q = q.eq("customer_id", customer_id)
@@ -26,6 +26,8 @@ class BookingRepository(BaseRepository):
             q = q.lte("preferred_date", date_to)
         if number_like:
             q = q.ilike("booking_number", f"*{number_like}*")
+        if or_expr:
+            q = q.or_(or_expr)
         offset = (page - 1) * limit
         res = self._run(q.order("created_at", desc=True).order("id").range(offset, offset + limit - 1))
         return res.data, res.count or 0

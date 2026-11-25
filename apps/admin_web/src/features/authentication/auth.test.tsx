@@ -119,10 +119,9 @@ describe('admin authentication & route protection', () => {
     expect(gateway.token).toBeNull()
   })
 
-  it('placeholder modules show no data and call no APIs', async () => {
-    const { backend } = renderApp({ path: '/orders', gateway: fakeGateway({ token: 'tok' }), routes: baseRoutes() })
-    expect(await screen.findByText(/coming next/i)).toBeInTheDocument()
-    expect(backend.calls.filter((c) => c.path.startsWith('/admin'))).toHaveLength(0)
+  it('an unknown admin address shows a not-found page, not a blank screen', async () => {
+    renderApp({ path: '/no-such-module', gateway: fakeGateway({ token: 'tok' }), routes: baseRoutes() })
+    expect(await screen.findByText('Page not found')).toBeInTheDocument()
   })
 
   it('me() identity helper sanity', () => expect(me().role).toBe('admin'))

@@ -122,6 +122,6 @@ class AdminNotifier(BaseRepository):
     def __init__(self, admin_client):
         super().__init__(admin_client)
 
-    def notify(self, user_id: str, title: str, message: str, related_id: str) -> None:
+    def notify(self, user_id: str, title: str, message: str, related_id: str, related_type: str = "vendor_application") -> None:
         self._run(self.client.table(self.table).insert({"user_id": user_id, "type": "system", "title": title, "message": message,
-                                                         "related_type": "vendor_application", "related_id": related_id, "is_read": False}))
+                                                         "related_type": related_type, "related_id": related_id, "is_read": False}))

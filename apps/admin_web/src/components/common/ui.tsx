@@ -35,10 +35,11 @@ export function Button({ variant = 'secondary', busy = false, size = 'md', child
 
 const TONES: Record<string, string> = {
   // verification / account
-  approved: 'green', active: 'green', completed: 'green', delivered: 'green', successful: 'green', paid: 'green', confirmed: 'blue',
-  pending: 'amber', processing: 'amber', open: 'amber', in_service: 'amber',
-  rejected: 'red', suspended: 'red', cancelled: 'red', failed: 'red', restricted: 'orange', inactive: 'gray',
-  accepted: 'blue', refunded: 'purple',
+  approved: 'green', active: 'green', completed: 'green', delivered: 'green', successful: 'green', paid: 'green', processed: 'green', resolved: 'green', ready: 'green', confirmed: 'blue',
+  pending: 'amber', processing: 'amber', open: 'amber', in_service: 'amber', preparing: 'amber', requested: 'amber', in_progress: 'amber', scheduled: 'blue', picked_up: 'blue',
+  rejected: 'red', suspended: 'red', cancelled: 'red', failed: 'red', expired: 'red', exhausted: 'orange', restricted: 'orange', inactive: 'gray', closed: 'gray',
+  accepted: 'blue', refunded: 'purple', partially_refunded: 'purple', ready_for_dispatch: 'blue', ready_for_delivery: 'blue', out_for_delivery: 'blue',
+  promotion: 'purple', announcement: 'blue', system: 'gray',
 }
 
 export function StatusBadge({ status, label }: { status: string | null | undefined; label?: string }) {

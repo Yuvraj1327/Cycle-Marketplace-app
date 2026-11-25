@@ -30,6 +30,8 @@ SORTS: dict[str, list[tuple[str, bool]]] = {   # (column, desc); id is a stable 
     "newest": [("created_at", True), ("id", False)],
     "price_low_to_high": [("price", False), ("created_at", True), ("id", False)],
     "price_high_to_low": [("price", True), ("created_at", True), ("id", False)],
+    "oldest": [("created_at", False), ("id", False)],            # admin console
+    "name": [("name", False), ("created_at", True), ("id", False)],
 }
 
 

@@ -1,0 +1,13 @@
+{
+  "_comment": "Copy to dart_defines.dev.json / dart_defines.prod.json (git-ignored) and run: flutter run --dart-define-from-file=dart_defines.dev.json. Public client values only: NEVER the Supabase service-role key, a payment secret or a Firebase service-account key.",
+  "API_BASE_URL": "http://10.0.2.2:8000",
+  "SUPABASE_URL": "https://<project-ref>.supabase.co",
+  "SUPABASE_ANON_KEY": "<anon / publishable key>",
+  "SUPPORT_EMAIL": "",
+  "SUPPORT_PHONE": "",
+  "APP_VERSION": "1.0.0",
+  "FIREBASE_API_KEY": "",
+  "FIREBASE_APP_ID": "",
+  "FIREBASE_MESSAGING_SENDER_ID": "",
+  "FIREBASE_PROJECT_ID": ""
+}

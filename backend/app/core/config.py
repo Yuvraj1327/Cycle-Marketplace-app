@@ -29,6 +29,17 @@ class Settings(BaseSettings):
     payment_provider_key_secret: str = ""    # secret API key - server side only
     payment_webhook_secret: str = ""         # used to verify webhook signatures
     currency: str = "INR"
+
+    # push notifications (Firebase Cloud Messaging). Leave empty until the client has a Firebase project: push is then reported as "not configured".
+    # Provide EITHER the service-account JSON inline OR a path to the key file. These are server-only secrets.
+    fcm_project_id: str = ""
+    fcm_service_account_json: str = ""
+    fcm_service_account_file: str = ""
+    fcm_android_channel_id: str = "cycle_default"
+    push_dispatch_interval_seconds: int = 15      # in-process dispatcher period; 0 disables the background loop (the admin endpoint can still dispatch)
+    push_batch_size: int = 50
+    push_max_attempts: int = 5
+    push_max_age_hours: int = 24                  # an older notification is never pushed (it stays in the in-app list)
     business_timezone: str = "Asia/Kolkata"   # 'today' and slot times for servicing are evaluated in this zone
     max_booking_images: int = 5
 

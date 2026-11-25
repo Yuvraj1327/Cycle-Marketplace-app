@@ -163,7 +163,9 @@ class FakeServiceSQL:
                 self._notify_admins("service_booking", "Booking cancelled", p_note, "service_booking", b["id"], key)
         else:
             kind = "pickup_delivery" if p_status in ("picked_up", "completed") else "service_booking"
-            self._notify(b["customer_id"], kind, p_status, b["booking_number"], "service_booking", b["id"], key)
+            label = {"rejected": "Booking rejected", "picked_up": "Cycle picked up", "in_service": "Repair started", "ready_for_delivery": "Ready for delivery",
+                     "completed": "Service completed", "cancelled": "Booking cancelled"}.get(p_status, p_status)
+            self._notify(b["customer_id"], kind, label, b["booking_number"], "service_booking", b["id"], key)
         return {"booking_id": b["id"], "status": p_status}
 
     # ------------------------------------------------------------------ charges / notes / logistics

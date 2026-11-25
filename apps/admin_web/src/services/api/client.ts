@@ -26,6 +26,7 @@ export class ApiError extends Error {
 
 export function errorMessage(e: unknown): string {
   if (e instanceof ApiError) return e.message
+  if (e instanceof Error && e.name === 'AuthFailure') return e.message   // identity / storage failures carry a message written for the user
   return 'Something went wrong. Please try again.'
 }
 
@@ -44,7 +45,7 @@ export interface ApiClientOptions {
 
 export interface ApiClient {
   get<T>(path: string, query?: Query): Promise<T>
-  post<T>(path: string, body?: unknown): Promise<T>
+  post<T>(path: string, body?: unknown, headers?: Record<string, string>): Promise<T>
   put<T>(path: string, body?: unknown): Promise<T>
   patch<T>(path: string, body?: unknown): Promise<T>
   delete<T>(path: string): Promise<T>
@@ -93,11 +94,11 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
   const doFetch = opts.fetchImpl ?? ((...a: Parameters<typeof fetch>) => fetch(...a))
   const timeoutMs = opts.timeoutMs ?? 20_000
 
-  async function once(method: string, path: string, query: Query | undefined, body: unknown, token: string | null): Promise<Response> {
+  async function once(method: string, path: string, query: Query | undefined, body: unknown, token: string | null, extra?: Record<string, string>): Promise<Response> {
     const ctrl = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), timeoutMs)
     try {
-      const headers: Record<string, string> = { Accept: 'application/json' }
+      const headers: Record<string, string> = { Accept: 'application/json', ...extra }
       if (token) headers.Authorization = `Bearer ${token}`
       if (body !== undefined) headers['Content-Type'] = 'application/json'
       return await doFetch(buildUrl(opts.baseUrl, path, query), { method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: ctrl.signal })
@@ -109,11 +110,11 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
     }
   }
 
-  async function request<T>(method: string, path: string, query?: Query, body?: unknown): Promise<T> {
-    let res = await once(method, path, query, body, await opts.getToken())
+  async function request<T>(method: string, path: string, query?: Query, body?: unknown, extra?: Record<string, string>): Promise<T> {
+    let res = await once(method, path, query, body, await opts.getToken(), extra)
     if (res.status === 401 && opts.refreshToken) {
       const fresh = await opts.refreshToken()
-      if (fresh) res = await once(method, path, query, body, fresh)
+      if (fresh) res = await once(method, path, query, body, fresh, extra)
     }
     if (!res.ok) {
       const err = await toApiError(res)
@@ -127,7 +128,7 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
 
   return {
     get: (path, query) => request('GET', path, query),
-    post: (path, body) => request('POST', path, undefined, body),
+    post: (path, body, headers) => request('POST', path, undefined, body, headers),
     put: (path, body) => request('PUT', path, undefined, body),
     patch: (path, body) => request('PATCH', path, undefined, body),
     delete: (path) => request('DELETE', path),

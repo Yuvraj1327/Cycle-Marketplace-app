@@ -1,5 +1,6 @@
 from postgrest.types import CountMethod
 
+from app.core.search import like_escape
 from app.repositories.base import BaseRepository, Row
 
 
@@ -24,6 +25,13 @@ class CategoryRepository(BaseRepository):
     def find(self, category_id: str) -> Row | None:
         res = self._run(self.client.table(self.table).select("*").eq("id", category_id).limit(1))
         return res.data[0] if res.data else None
+
+    def name_taken(self, name: str, *, kind: str | None = None, exclude_id: str | None = None) -> bool:
+        """Is there already a category with this name (case-insensitive, same kind)? Used to stop duplicates."""
+        q = self.client.table(self.table).select("id,name").ilike("name", like_escape(name.strip()))
+        if kind:
+            q = q.eq("kind", kind)
+        return any(r["id"] != exclude_id and r["name"].strip().lower() == name.strip().lower() for r in self._run(q.limit(10)).data)
 
     def children(self, parent_id: str) -> list[Row]:
         return self._run(self.client.table(self.table).select("id").eq("parent_id", parent_id)).data

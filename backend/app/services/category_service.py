@@ -50,6 +50,8 @@ class CategoryService:
     # ---------------- admin writes ----------------
     def create(self, data: CategoryCreate) -> dict:
         values = data.model_dump(mode="json", exclude={"slug"})
+        if self.repo.name_taken(data.name, kind=data.kind.value):
+            raise conflict("category_name_taken", f"A {data.kind.value.replace('_', ' ')} category called '{data.name.strip()}' already exists.")
         if data.parent_id:
             self._check_parent(str(data.parent_id), data.kind.value, own_id=None)
         values["slug"] = data.slug or self._unique_slug(data.name)
@@ -61,6 +63,8 @@ class CategoryService:
             raise NotFoundError("Category not found.")
         values = changes(data, nullable={"description", "image_path", "parent_id"})
         kind = values.get("kind", current["kind"])
+        if ("name" in values or "kind" in values) and self.repo.name_taken(values.get("name", current["name"]), kind=kind, exclude_id=category_id):
+            raise conflict("category_name_taken", f"A {kind.replace('_', ' ')} category called '{values.get('name', current['name']).strip()}' already exists.")
         if "kind" in values and values["kind"] != current["kind"]:
             if self.repo.product_count([category_id], public_only=False) or self.repo.children(category_id):
                 raise conflict("category_in_use", "The kind of a category with products or sub-categories cannot change.")

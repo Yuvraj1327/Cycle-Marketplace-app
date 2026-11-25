@@ -33,6 +33,16 @@ class CommissionRuleOut(BaseModel):
     effective_from: datetime
     effective_until: datetime | None
     created_at: datetime
+    vendor_name: str | None = None
+    category_name: str | None = None
+    service_category_name: str | None = None
+    scope: str = "global"            # global | vendor | category | vendor_and_category | service_category
+    state: str = "active"            # active | inactive | scheduled | expired
+
+
+class ResolvedRule(BaseModel):
+    rule: CommissionRuleOut | None
+    note: str | None
 
 
 class CommissionRuleCreate(StrictModel):

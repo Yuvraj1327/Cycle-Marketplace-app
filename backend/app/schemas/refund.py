@@ -33,6 +33,7 @@ class RefundOut(BaseModel):
     processed_by: UUID | None
     processed_at: datetime | None
     created_at: datetime
+    order_number: str | None = None            # filled in by the admin list/detail
 
 
 class RefundCreate(StrictModel):

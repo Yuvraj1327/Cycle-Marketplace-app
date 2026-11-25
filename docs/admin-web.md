@@ -42,9 +42,9 @@ Existing admin endpoints reused as-is: `GET /admin/orders|service-bookings|produ
 
 ## Known gaps / client decisions
 
-* Customer/vendor **order and booking history** uses the existing admin list endpoints (latest 10, with the total shown); full management comes in Step 10.
+* Customer/vendor **order and booking history** uses the existing admin list endpoints (latest 10, with the total shown); the full lists are under Orders and Service bookings (Step 10).
 * Account status is enforced by the backend (inactive/restricted users get 403 `account_*`), but existing access tokens stay valid until they expire (stateless JWTs — documented limitation in `docs/backend-auth.md`).
 * Vendor re-submission after rejection is still admin-driven (the vendor edits; an admin re-approves via "Approve after review").
 * Vendor `account_status` filtering uses an id lookup (fine for thousands of vendors; a SQL view/join would be better at larger scale).
 * "Total platform sales" is shown as order value by state plus the payments ledger (`collected`, `net`, commission); revenue recognition rules need client confirmation.
-* Product, order, payment, refund, settlement, service, notification, report and settings screens are placeholders (Step 10).
+* The product, order, payment, refund, settlement, service, notification, report and settings modules were built in Step 10 — see `docs/admin-operations.md`.

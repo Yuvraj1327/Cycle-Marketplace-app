@@ -1,6 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-export class AuthFailure extends Error {}
+export class AuthFailure extends Error {
+  override name = 'AuthFailure'
+}
 
 /** What the app needs from the identity provider. Supabase Auth is the real implementation; tests use a fake. Passwords go straight to
  *  Supabase: they are never stored by the app and never sent to FastAPI. */
@@ -15,6 +17,9 @@ export interface AuthGateway {
   sendPasswordReset(email: string): Promise<void>
   /** Verifies the current password with Supabase first, then sets the new one through the supported Supabase flow. */
   changePassword(email: string, current: string, next: string): Promise<void>
+  /** Uploads an image to a PUBLIC bucket as the signed-in administrator (storage policy `banners_admin_write` enforces admin-only writes).
+   *  Only the stored path is then registered with FastAPI. No credential other than the user's own session is ever used. */
+  uploadImage(bucket: 'banners', path: string, file: File): Promise<void>
 }
 
 function friendly(message: string): string {
@@ -51,6 +56,10 @@ export function createSupabaseGateway(client: SupabaseClient): AuthGateway {
     async sendPasswordReset(email) {
       const { error } = await client.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/login` })
       if (error) throw new AuthFailure(friendly(error.message))
+    },
+    async uploadImage(bucket, path, file) {
+      const { error } = await client.storage.from(bucket).upload(path, file, { contentType: file.type, upsert: false, cacheControl: '3600' })
+      if (error) throw new AuthFailure(error.message.toLowerCase().includes('row-level security') ? 'You are not allowed to upload images.' : `The image could not be uploaded: ${error.message}`)
     },
     async changePassword(email, current, next) {
       const check = await client.auth.signInWithPassword({ email, password: current })

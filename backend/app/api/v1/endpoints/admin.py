@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from postgrest import SyncPostgrestClient
 
 from app.api.v1.responses import E400, E404, E409, E422, PROTECTED
-from app.core.dependencies import CurrentUser, get_user_db, require_admin
+from app.core.dependencies import CurrentUser, get_admin_db, get_user_db, require_admin
 from app.repositories.banner_repository import BannerRepository
 from app.repositories.category_repository import CategoryRepository
 from app.schemas.banner import AdminBannerOut, BannerCreate, BannerUpdate
@@ -55,25 +55,26 @@ def delete_category(category_id: UUID, _a: CurrentUser = Depends(require_admin),
 
 
 # ---------------- products ----------------
-def prod_service(db: SyncPostgrestClient = Depends(get_user_db)) -> AdminProductService:
-    return AdminProductService(db)
+def prod_service(db: SyncPostgrestClient = Depends(get_user_db), admin_db: SyncPostgrestClient = Depends(get_admin_db)) -> AdminProductService:
+    return AdminProductService(db, admin_db)
 
 
 @products.get("", response_model=Page[AdminProductOut], summary="Review all products",
               description=ADMIN + " Filter by vendor, category, condition, `approval_status`, `moderation_status` "
-              "(pending|approved|rejected|inactive), `is_active`, `is_featured` (this lists featured products). Includes vendor details.",
+              "(pending|approved|rejected|inactive), `is_active`, `is_featured` (this lists featured products), `in_stock`; `sort`: newest|oldest|name|price_*. Includes vendor details.",
               responses=E422)
 def list_products(
     q: str | None = Query(None, max_length=100), vendor_id: UUID | None = None, category_id: UUID | None = None,
     condition: Condition | None = None, approval_status: ApprovalStatus | None = None,
     moderation_status: str | None = Query(None, pattern="^(pending|approved|rejected|inactive)$"),
-    is_active: bool | None = None, is_featured: bool | None = None,
+    is_active: bool | None = None, is_featured: bool | None = None, in_stock: bool | None = None,
+    sort: str = Query("newest", pattern="^(newest|oldest|name|price_low_to_high|price_high_to_low)$"),
     page: int = Query(1, ge=1, le=10_000), limit: int = Query(20, ge=1, le=100),
     _a: CurrentUser = Depends(require_admin), service: AdminProductService = Depends(prod_service),
 ):
     return service.list(q=q, vendor_id=vendor_id, category_id=category_id, condition=condition.value if condition else None,
                         approval_status=approval_status.value if approval_status else None, moderation_status=moderation_status,
-                        is_active=is_active, is_featured=is_featured, page=page, limit=limit)
+                        is_active=is_active, is_featured=is_featured, in_stock=in_stock, sort=sort, page=page, limit=limit)
 
 
 @products.get("/{product_id}", response_model=AdminProductOut, summary="Product with vendor details", description=ADMIN, responses={**E404, **E422})
@@ -84,21 +85,21 @@ def get_product(product_id: UUID, _a: CurrentUser = Depends(require_admin), serv
 @products.patch("/{product_id}/approval", response_model=AdminProductOut, summary="Approve / reject / reset a listing",
                 description=ADMIN + " Rejection requires `review_notes` (shown to the vendor). The reviewer and time are recorded by the database.",
                 responses={**E404, **E422})
-def set_approval(product_id: UUID, body: ApprovalUpdate, _a: CurrentUser = Depends(require_admin), service: AdminProductService = Depends(prod_service)):
-    return service.set_approval(product_id, body)
+def set_approval(product_id: UUID, body: ApprovalUpdate, admin: CurrentUser = Depends(require_admin), service: AdminProductService = Depends(prod_service)):
+    return service.set_approval(product_id, body, admin)
 
 
 @products.patch("/{product_id}/status", response_model=AdminProductOut, summary="Activate / deactivate a listing",
                 description=ADMIN + " Deactivating also removes the featured flag. Note: a vendor can re-activate their own listing; to enforce a "
                 "takedown of an invalid listing use the approval endpoint to reject it.", responses={**E404, **E422})
-def set_status(product_id: UUID, body: ActiveUpdate, _a: CurrentUser = Depends(require_admin), service: AdminProductService = Depends(prod_service)):
-    return service.set_active(product_id, body.is_active)
+def set_status(product_id: UUID, body: ActiveUpdate, admin: CurrentUser = Depends(require_admin), service: AdminProductService = Depends(prod_service)):
+    return service.set_active(product_id, body.is_active, admin)
 
 
 @products.patch("/{product_id}/featured", response_model=AdminProductOut, summary="Feature / unfeature a product",
                 description=ADMIN + " Only approved, active listings can be featured (409 otherwise).", responses={**E404, **E409, **E422})
-def set_featured(product_id: UUID, body: FeaturedUpdate, _a: CurrentUser = Depends(require_admin), service: AdminProductService = Depends(prod_service)):
-    return service.set_featured(product_id, body.is_featured)
+def set_featured(product_id: UUID, body: FeaturedUpdate, admin: CurrentUser = Depends(require_admin), service: AdminProductService = Depends(prod_service)):
+    return service.set_featured(product_id, body.is_featured, admin)
 
 
 # ---------------- banners ----------------

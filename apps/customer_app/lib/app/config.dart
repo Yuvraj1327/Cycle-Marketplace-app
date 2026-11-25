@@ -18,6 +18,22 @@ class AppConfig {
   static const supportEmail = String.fromEnvironment('SUPPORT_EMAIL');
   static const supportPhone = String.fromEnvironment('SUPPORT_PHONE');
 
+  /// Firebase (push notifications). All four come from the client's Firebase project (Project settings -> Your apps -> Android). Public client identifiers,
+  /// not secrets (the server-side service-account key lives only on the backend). Leave empty and push stays off.
+  static const firebaseApiKey = String.fromEnvironment('FIREBASE_API_KEY');
+  static const firebaseAppId = String.fromEnvironment('FIREBASE_APP_ID');
+  static const firebaseMessagingSenderId = String.fromEnvironment(
+    'FIREBASE_MESSAGING_SENDER_ID',
+  );
+  static const firebaseProjectId = String.fromEnvironment(
+    'FIREBASE_PROJECT_ID',
+  );
+  static bool get firebaseConfigured =>
+      firebaseApiKey.isNotEmpty &&
+      firebaseAppId.isNotEmpty &&
+      firebaseMessagingSenderId.isNotEmpty &&
+      firebaseProjectId.isNotEmpty;
+
   static bool get supabaseConfigured =>
       supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
   static String get apiV1 => '$apiBaseUrl/api/v1';
