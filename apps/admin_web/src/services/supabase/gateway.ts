@@ -22,6 +22,27 @@ export interface AuthGateway {
   uploadImage(bucket: 'banners', path: string, file: File): Promise<void>
 }
 
+/** Shape of supabase-js `AuthError` (only what is needed here). */
+interface SupabaseAuthError { message: string; status?: number; code?: string; name?: string }
+
+/** Turns a Supabase Auth error into text for the sign-in form. Known cases get a plain sentence; anything else shows Supabase's OWN message
+ *  plus its status/code, so a misconfiguration (wrong project URL or key, disabled provider, ...) is visible instead of hidden. */
+function describe(e: SupabaseAuthError): string {
+  const code = e.code ?? ''
+  if (code === 'invalid_credentials') return 'Incorrect e-mail or password.'
+  if (code === 'email_not_confirmed') return 'Please confirm your e-mail address first.'
+  if (code === 'over_request_rate_limit' || code === 'over_email_send_rate_limit' || e.status === 429) return 'Too many attempts. Please wait a minute and try again.'
+  if (code === 'invalid_api_key' || code === 'no_authorization' || /invalid api key/i.test(e.message)) {
+    return `Supabase rejected the API key (${e.message}). Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY belong to the same project, then restart the dev server.`
+  }
+  if (e.name === 'AuthRetryableFetchError' || e.status === 0 || /failed to fetch|networkerror|load failed/i.test(e.message)) {
+    return 'Cannot reach Supabase Auth. Check your connection and VITE_SUPABASE_URL.'
+  }
+  const text = friendly(e.message)
+  const detail = [e.status ? `HTTP ${e.status}` : '', code].filter(Boolean).join(', ')
+  return detail && text === e.message ? `${text} (${detail})` : text
+}
+
 function friendly(message: string): string {
   const m = message.toLowerCase()
   if (m.includes('invalid login')) return 'Incorrect e-mail or password.'
@@ -48,7 +69,7 @@ export function createSupabaseGateway(client: SupabaseClient): AuthGateway {
     },
     async signIn(email, password) {
       const { error } = await client.auth.signInWithPassword({ email: email.trim(), password })
-      if (error) throw new AuthFailure(friendly(error.message))
+      if (error) throw new AuthFailure(describe(error))
     },
     async signOut() {
       // The default (global) sign-out also revokes the refresh token on the server, but supabase-js keeps the stored session when that

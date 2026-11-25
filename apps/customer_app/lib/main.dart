@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -14,6 +15,8 @@ import 'features/authentication/screens.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Public client configuration from the bundled .env (optional: --dart-define values still take precedence).
+  await dotenv.load(isOptional: true);
   if (!AppConfig.supabaseConfigured) {
     // Never crash on a missing build configuration: say exactly what is missing.
     runApp(

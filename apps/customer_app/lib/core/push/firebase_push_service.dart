@@ -31,7 +31,7 @@ class FirebasePushService implements PushService {
     if (!AppConfig.firebaseConfigured) return null;
     try {
       await Firebase.initializeApp(
-        options: const FirebaseOptions(
+        options: FirebaseOptions(
           apiKey: AppConfig.firebaseApiKey,
           appId: AppConfig.firebaseAppId,
           messagingSenderId: AppConfig.firebaseMessagingSenderId,

@@ -285,8 +285,23 @@ def test_configured_credentials_never_appear_in_any_response_or_log(client, worl
 
 
 def test_cors_allows_only_the_configured_origin(client):
-    ok = client.options("/api/v1/auth/me", headers={"Origin": "http://localhost:5173", "Access-Control-Request-Method": "GET", "Access-Control-Request-Headers": "authorization"})
-    assert ok.headers.get("access-control-allow-origin") == "http://localhost:5173"
-    for evil in ("https://evil.example", "http://localhost:5174", "null"):
+    from app.core.config import get_settings
+    allowed = get_settings().cors_origins
+    assert "*" not in allowed
+    origin = allowed[0]
+    ok = client.options("/api/v1/auth/me", headers={"Origin": origin, "Access-Control-Request-Method": "GET", "Access-Control-Request-Headers": "authorization"})
+    assert ok.status_code == 200 and ok.headers.get("access-control-allow-origin") == origin
+    assert "authorization" in ok.headers.get("access-control-allow-headers", "").lower()
+    for evil in ("https://evil.example", "http://localhost:5999", "null"):
         r = client.options("/api/v1/auth/me", headers={"Origin": evil, "Access-Control-Request-Method": "GET"})
         assert "access-control-allow-origin" not in r.headers, evil
+
+
+def test_cors_origin_parsing_accepts_json_or_comma_separated_and_refuses_wildcard():
+    import pytest
+
+    from app.core.config import parse_origins
+    assert parse_origins('["http://localhost:5174/", "https://admin.example.com"]') == ["http://localhost:5174", "https://admin.example.com"]
+    assert parse_origins("http://localhost:5174, https://admin.example.com/") == ["http://localhost:5174", "https://admin.example.com"]
+    with pytest.raises(ValueError):
+        parse_origins("*")

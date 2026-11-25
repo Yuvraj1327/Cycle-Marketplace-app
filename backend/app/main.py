@@ -117,12 +117,15 @@ app = FastAPI(
     debug=settings.debug,
 )
 
+# Explicit origins only (never "*"). Authentication is a Bearer token in the Authorization header, not a cookie, so credentialed
+# (cookie) cross-origin requests are not needed and stay off. `Authorization` is listed explicitly because a wildcard header list does not cover it.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Idempotency-Key"],
+    max_age=600,
 )
 
 

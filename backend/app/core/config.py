@@ -1,6 +1,28 @@
+import json
 from functools import lru_cache
+from typing import Annotated
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+# Local dev servers of the admin console (Vite uses 5173, and 5174 when 5173 is taken).
+DEFAULT_DEV_ORIGINS = ["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"]
+
+
+def parse_origins(value: object) -> list[str]:
+    """CORS_ORIGINS may be a JSON list (["https://a","https://b"]) or comma separated (https://a,https://b), as people type it into Railway.
+    Each entry is trimmed and loses a trailing slash (browsers never send one in `Origin`). A wildcard is refused: origins must be explicit."""
+    if value is None or value == "":
+        return []
+    if isinstance(value, str):
+        text = value.strip()
+        items = json.loads(text) if text.startswith("[") else text.split(",")
+    else:
+        items = list(value)  # type: ignore[call-overload]
+    origins = [str(o).strip().rstrip("/") for o in items if str(o).strip()]
+    if "*" in origins:
+        raise ValueError('CORS_ORIGINS must list explicit origins; "*" is not allowed.')
+    return list(dict.fromkeys(origins))
 
 
 class Settings(BaseSettings):
@@ -10,7 +32,8 @@ class Settings(BaseSettings):
     app_env: str = "development"
     debug: bool = False
     api_v1_prefix: str = "/api/v1"
-    cors_origins: list[str] = ["http://localhost:5173"]
+    # Browser origins allowed to call this API (the admin console). In production set CORS_ORIGINS to the real https admin origin(s).
+    cors_origins: Annotated[list[str], NoDecode] = DEFAULT_DEV_ORIGINS
 
     supabase_url: str = ""
     supabase_anon_key: str = ""
@@ -48,6 +71,11 @@ class Settings(BaseSettings):
     max_image_bytes: int = 5 * 1024 * 1024
     max_cart_items: int = 50
     max_wishlist_items: int = 200
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _normalise_origins(cls, v: object) -> list[str]:
+        return parse_origins(v)
 
     @property
     def jwt_issuer(self) -> str:

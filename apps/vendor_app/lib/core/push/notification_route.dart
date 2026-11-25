@@ -1,8 +1,10 @@
+import '../../app/config.dart';
+
 /// Which app this build is; the backend checks it against the account's role when a device is registered.
 const pushAppName = 'vendor';
 
 /// App version sent with the device registration (optional, for support).
-const appVersion = String.fromEnvironment('APP_VERSION');
+String get appVersion => AppConfig.appVersion;
 
 final _uuid = RegExp(
   r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
