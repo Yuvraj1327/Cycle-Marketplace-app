@@ -38,3 +38,10 @@ Read access to private photos (`service-images`): the owning customer; the vendo
 * Profile photos (`avatars`) have a bucket but no screen.
 * Orphaned objects (a banner replaced or deleted) stay in the bucket until a cleanup job is added.
 * Image resizing / thumbnails are not implemented (full-size files are served).
+
+## Step 12 re-verification
+
+* All five buckets and every storage policy were re-run on a real PostgreSQL cluster as part of the cross-user isolation test: a customer or vendor cannot write into another user's folder, a customer cannot write product / shop / banner objects, and only customer accounts can write `service-images` (tightened in migration 20).
+* `service-images` stays **private**; the apps read booking photos through the backend / signed access, never through a public URL.
+* The admin banner upload path and both release APKs were scanned: no service-role key or other privileged credential is present in any client artefact.
+* Still **not verified** (no Supabase project): real uploads from a phone or browser, signed-URL expiry, server-side MIME enforcement, replacing / deleting objects through the real Storage API. These are in the staging checklist, `docs/deployment-guide.md` §9.

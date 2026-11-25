@@ -51,7 +51,11 @@ export function createSupabaseGateway(client: SupabaseClient): AuthGateway {
       if (error) throw new AuthFailure(friendly(error.message))
     },
     async signOut() {
-      await client.auth.signOut()
+      // The default (global) sign-out also revokes the refresh token on the server, but supabase-js keeps the stored session when that
+      // request cannot reach Supabase (offline, outage): a reload would then sign the administrator straight back in. Ending this
+      // browser's session must never depend on the network, so always finish with a local sign-out (removes the session first).
+      await client.auth.signOut().catch(() => undefined)
+      await client.auth.signOut({ scope: 'local' }).catch(() => undefined)
     },
     async sendPasswordReset(email) {
       const { error } = await client.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/login` })

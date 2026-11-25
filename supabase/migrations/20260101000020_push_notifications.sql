@@ -211,6 +211,8 @@ $$;
 create trigger products_notify_moderation after update of approval_status on public.products
   for each row when (new.approval_status in ('approved', 'rejected') and old.approval_status is distinct from new.approval_status) execute function public.notify_product_moderation();
 
+-- trigger functions are never meant to be called by a client
+revoke execute on function public.notify_vendor_order_cancelled(), public.notify_product_moderation() from public, anon, authenticated;
 revoke execute on function public.register_device_token(uuid, text, text, text, text, text), public.deactivate_device_token(uuid, text),
   public.claim_pending_pushes(integer, integer, interval), public.finish_push(uuid, text, text, integer, uuid[]), public.admin_push_status(),
   public.admin_announcement_stats(uuid[]) from public, anon, authenticated;

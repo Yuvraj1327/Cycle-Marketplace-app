@@ -38,11 +38,12 @@ def test_full_search_request_shape(wire):
     r = seen[0]
     params = q(r)
     assert r.method == "GET" and urlparse(str(r.url)).path == "/rest/v1/products"
-    assert params["is_active"] == ["eq.true"] and params["approval_status"] == ["eq.approved"]
+    # newer postgrest-py versions send Python True as "True"; PostgreSQL's boolean input is case-insensitive, so both mean the same
+    assert [v.lower() for v in params["is_active"]] == ["eq.true"] and params["approval_status"] == ["eq.approved"]
     assert params["category_id"] == ["in.(33333333-3333-3333-3333-333333333333)"]
     assert params["product_type"] == ["eq.new_cycle"] and params["condition"] == ["eq.new"]
     assert sorted(params["price"]) == ["gte.1000.0", "lte.9999.5"]
-    assert params["brand"] == ["ilike.Trek"] and params["is_available"] == ["eq.true"] and params["stock_quantity"] == ["gt.0"]
+    assert params["brand"] == ["ilike.Trek"] and [v.lower() for v in params["is_available"]] == ["eq.true"] and params["stock_quantity"] == ["gt.0"]
     assert params["or"] == ["(name.ilike.*road bike*,brand.ilike.*road bike*,model.ilike.*road bike*,description.ilike.*road bike*,"
                             "category_id.in.(11111111-1111-1111-1111-111111111111,22222222-2222-2222-2222-222222222222))"]
     assert params["order"] == ["price.asc,created_at.desc,id.asc"]

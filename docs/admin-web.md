@@ -38,7 +38,7 @@ Existing admin endpoints reused as-is: `GET /admin/orders|service-bookings|produ
 | Backend `pytest` (incl. real PostgreSQL scenarios for migration 18) | 427 passed (402 before Steps 8–9: +25 this step and Step 8 combined) |
 | Customer app tests/analyze; Vendor app tests/analyze | 65 + 68 passed, 0 issues |
 
-**Not verified:** real Supabase sign-in/refresh/password change/reset e-mail, running in a real browser (layout/responsiveness verified by CSS review only, no screenshots), and Storage URLs of shop images (they are built from the configured Supabase URL).
+**Not verified:** real Supabase sign-in/refresh/password change/reset e-mail, (Step 12 update: the production build **was** run in a real Chrome — 72 route × viewport loads plus scripted flows, see `docs/final-project-report.md` §E), and Storage URLs of shop images (they are built from the configured Supabase URL).
 
 ## Known gaps / client decisions
 

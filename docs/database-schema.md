@@ -122,3 +122,16 @@ Path convention `<bucket>/<owner_uid>/...`; 5 MB; jpeg/png/webp; no anonymous wr
 
 ## Step 11 additions (migration 20)
 `device_tokens` (FCM tokens: RLS on, no policies, no privileges for anon/authenticated: backend-only); push outbox columns on `notifications` (`push_status`, `push_attempts`, `push_next_at`, `push_sent_at`, `push_error`; existing rows are `skipped`, new rows `pending`); functions `register_device_token`, `deactivate_device_token`, `claim_pending_pushes`, `finish_push`, `admin_push_status` and a new `admin_announcement_stats` (service_role only); the `notifications` guard trigger now also protects the push columns; triggers `notify_vendor_order_cancelled` and `notify_product_moderation`; the private `service-images` policy now allows writes by customer accounts only. See `docs/integration-audit.md`, `docs/push-notifications.md`, `docs/storage-architecture.md`.
+
+## Step 12 review (no new migration)
+
+Step 12 changed no schema. What was verified, on a throwaway **real PostgreSQL** cluster running migrations 01–20 in order:
+
+* Every column, enum value and RPC argument that the backend code uses exists in these migrations (schema-conformance tests; they fail when a name is changed or misspelled).
+* Primary / foreign keys, unique and check constraints, triggers (`updated_at`, notification guards, vendor / moderation notifications, push outbox) and SQL functions (stock, checkout, payments, refunds, settlements, dashboards, push claim / finish) behave as documented; concurrent push claims never return the same row twice.
+* RLS: as the `authenticated` role, a user cannot update their own role or status, change or read another user's profile / addresses / notifications / orders, read another vendor's private records, or write into another user's storage folder; `device_tokens` is unreachable from clients. Security-definer functions are executable only by the roles that need them (trigger functions revoked in migration 20).
+* Indexes: foreign keys on frequently joined columns are indexed (migration 10); 16 FK columns on audit / history tables are deliberately not indexed. With 60,000 products the filtered catalogue page took 21 ms and a text search 57 ms.
+* Historical records: no migration drops a data table; orders, payments, refunds, bookings keep status columns, price snapshots and append-only history.
+
+Still open from the list above ("Unresolved business decisions") — unchanged and waiting on the client: items 1–9. Defence-in-depth idea, not required: revoke the default table privileges of `anon` (RLS already blocks the rows).
+Not verified: behaviour on a real Supabase project (extensions, Supabase-managed `auth` / `storage` schemas, PostgREST schema cache).

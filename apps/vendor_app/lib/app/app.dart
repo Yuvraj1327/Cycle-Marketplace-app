@@ -9,7 +9,9 @@ class VendorApp extends ConsumerWidget {
   const VendorApp({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(pushControllerProvider); // keeps device registration and notification taps alive for the whole session
+    ref.watch(
+      pushControllerProvider,
+    ); // keeps device registration and notification taps alive for the whole session
     return MaterialApp.router(
       title: 'Cycle Vendor',
       debugShowCheckedModeBanner: false,

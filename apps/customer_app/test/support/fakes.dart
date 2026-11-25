@@ -59,11 +59,16 @@ class FakeAuthService implements AuthService {
     required String phone,
     required String code,
   }) async {}
+
+  /// Mimics gotrue when the server cannot be reached: the device session is removed first, then the revoke request throws.
+  bool signOutThrows = false;
+
   @override
   Future<void> signOut() async {
     signedOut = true;
     _token = null;
     _changes.add(false);
+    if (signOutThrows) throw Exception('network unreachable');
   }
 }
 

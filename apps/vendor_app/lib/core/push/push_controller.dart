@@ -99,7 +99,9 @@ class PushController {
     final s = _service;
     if (!s.isAvailable) return;
     lastPermission = await s.requestPermission();
-    if (lastPermission != PushPermission.granted) return; // denied: the in-app list still works
+    if (lastPermission != PushPermission.granted) {
+      return; // denied: the in-app list still works
+    }
     final token = await s.token();
     if (token != null) await _register(token);
     _refresh?.cancel();
@@ -113,7 +115,9 @@ class PushController {
       await _ref.read(pushRepositoryProvider).register(token);
       _registered = token;
     } catch (e) {
-      debugPrint('Device registration failed (will retry on next sign-in or token refresh): $e');
+      debugPrint(
+        'Device registration failed (will retry on next sign-in or token refresh): $e',
+      );
     }
   }
 
@@ -136,7 +140,8 @@ class PushController {
     unawaited(_foreground?.cancel());
     _refresh = _foreground = null;
     _registered = null;
-    await _service.deleteToken(); // the old user must stop receiving pushes on this phone as soon as possible
+    await _service
+        .deleteToken(); // the old user must stop receiving pushes on this phone as soon as possible
   }
 
   void _onForeground(PushPayload p) {
@@ -159,7 +164,10 @@ class PushController {
   /// Tap on a notification. Signed in -> go to the record; otherwise remember where to go and continue after sign-in.
   void _open(PushPayload p) {
     final route =
-        routeForNotification(relatedType: p.relatedType, relatedId: p.relatedId) ??
+        routeForNotification(
+          relatedType: p.relatedType,
+          relatedId: p.relatedId,
+        ) ??
         '/notifications';
     if (_ref.read(authControllerProvider).isSignedIn) {
       _go(route);

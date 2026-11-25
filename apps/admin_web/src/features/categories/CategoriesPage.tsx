@@ -134,3 +134,7 @@ export function CategoriesPage({ variant }: { variant: Variant }) {
     </>
   )
 }
+
+/** Route entry points (a lazily loaded route needs a component without props). */
+export const ProductCategoriesPage = () => <CategoriesPage variant="product" />
+export const ServiceCategoriesPage = () => <CategoriesPage variant="service" />

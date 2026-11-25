@@ -1,12 +1,15 @@
 """Translate Supabase/PostgREST/Postgres errors into AppError subclasses without leaking internals to clients."""
 import logging
 
+import httpx
+
 from postgrest.exceptions import APIError
 
 from app.core.exceptions import (
     AppError,
     ConflictError,
     DatabaseError,
+    ServiceUnavailableError,
     NotFoundError,
     PermissionDeniedError,
     ValidationFailedError,
@@ -93,5 +96,8 @@ def translate_db_error(exc: Exception) -> AppError:
         code = str(getattr(exc, "code", "") or "")
         logger.warning("Database error code=%s message=%s", code, getattr(exc, "message", exc))
         return _SQLSTATE_MAP.get(code, DatabaseError)()
+    if isinstance(exc, httpx.TransportError):       # connection refused / DNS / timeout: Supabase is unreachable, which is temporary
+        logger.error("Database service unreachable: %s", type(exc).__name__)
+        return ServiceUnavailableError("The service is temporarily unreachable. Please try again in a moment.")
     logger.exception("Unexpected database failure")
     return DatabaseError()

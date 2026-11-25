@@ -996,23 +996,41 @@ void main() {
 
   group('push device registration', () {
     const tokenV = 'contract-fcm-token-VVVVVVVVVVVVVVVVVVVV';
-    test('an approved vendor registers and unregisters through the app\'s own repository', () async {
-      final repo = PushRepository(va());
-      await repo.register(tokenV);
-      await repo.register(tokenV);
-      await repo.unregister(tokenV);
-    });
-    test('a vendor whose application is still pending may register (it will be told when approved)', () async {
-      final repo = PushRepository(as('vendor_pending'));
-      await repo.register(tokenV);
-      await repo.unregister(tokenV);
-    });
-    test('a customer token cannot register as the vendor app, and vendors cannot unregister each other', () async {
-      await expectApiError(PushRepository(customer()).register(tokenV), kind: ApiErrorKind.forbidden);
-      await PushRepository(va()).register(tokenV);
-      final res = await vb().post('/devices/unregister', body: {'token': tokenV}) as Map;
-      expect(res['unregistered'], isFalse);
-      expect((await va().post('/devices/unregister', body: {'token': tokenV}) as Map)['unregistered'], isTrue);
-    });
+    test(
+      'an approved vendor registers and unregisters through the app\'s own repository',
+      () async {
+        final repo = PushRepository(va());
+        await repo.register(tokenV);
+        await repo.register(tokenV);
+        await repo.unregister(tokenV);
+      },
+    );
+    test(
+      'a vendor whose application is still pending may register (it will be told when approved)',
+      () async {
+        final repo = PushRepository(as('vendor_pending'));
+        await repo.register(tokenV);
+        await repo.unregister(tokenV);
+      },
+    );
+    test(
+      'a customer token cannot register as the vendor app, and vendors cannot unregister each other',
+      () async {
+        await expectApiError(
+          PushRepository(customer()).register(tokenV),
+          kind: ApiErrorKind.forbidden,
+        );
+        await PushRepository(va()).register(tokenV);
+        final res =
+            await vb().post('/devices/unregister', body: {'token': tokenV})
+                as Map;
+        expect(res['unregistered'], isFalse);
+        expect(
+          (await va().post('/devices/unregister', body: {'token': tokenV})
+              as Map)['unregistered'],
+          isTrue,
+        );
+      },
+    );
   });
 }

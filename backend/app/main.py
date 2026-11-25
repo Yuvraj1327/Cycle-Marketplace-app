@@ -96,8 +96,14 @@ async def lifespan(_: FastAPI):
         worker.cancel()
 
 
+_PRODUCTION = settings.app_env.lower() in {"production", "prod"}
+
 app = FastAPI(
     title=settings.app_name,
+    # The interactive docs and the OpenAPI document describe every endpoint: they stay off in production (APP_ENV=production).
+    docs_url=None if _PRODUCTION else "/docs",
+    redoc_url=None if _PRODUCTION else "/redoc",
+    openapi_url=None if _PRODUCTION else "/openapi.json",
     version="0.11.0",
     lifespan=lifespan,
     description=(

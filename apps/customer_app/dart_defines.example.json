@@ -5,6 +5,7 @@
   "SUPABASE_ANON_KEY": "<anon / publishable key>",
   "SUPPORT_EMAIL": "",
   "SUPPORT_PHONE": "",
+  "PHONE_AUTH_ENABLED": "false",
   "APP_VERSION": "1.0.0",
   "FIREBASE_API_KEY": "",
   "FIREBASE_APP_ID": "",

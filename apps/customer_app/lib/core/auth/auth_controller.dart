@@ -126,14 +126,19 @@ class AuthController extends Notifier<AuthState> {
         .read(signOutHooksProvider)
         .run(); // e.g. push unregistration: needs the session, so it runs first
     await ref.read(authRepositoryProvider).logout();
-    await ref.read(authServiceProvider).signOut();
+    try {
+      await ref.read(authServiceProvider).signOut();
+    } catch (_) {
+      // gotrue removes the device session first and only then asks the server to revoke it; offline that request throws.
+      // The user is signed out on this device either way.
+    }
     state = const AuthState.signedOut();
   }
 
   /// Called by the API client when a request is still unauthorized after a token refresh.
   void sessionExpired() {
     if (state.status == AuthStatus.signedIn) {
-      ref.read(authServiceProvider).signOut();
+      ref.read(authServiceProvider).signOut().catchError((Object _) {});
       state = const AuthState.signedOut(
         message: 'Your session has expired. Please sign in again.',
       );

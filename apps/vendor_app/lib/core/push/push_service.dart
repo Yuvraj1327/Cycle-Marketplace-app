@@ -56,7 +56,8 @@ class NoopPushService implements PushService {
   @override
   bool get isAvailable => false;
   @override
-  Future<PushPermission> requestPermission() async => PushPermission.unavailable;
+  Future<PushPermission> requestPermission() async =>
+      PushPermission.unavailable;
   @override
   Future<String?> token() async => null;
   @override

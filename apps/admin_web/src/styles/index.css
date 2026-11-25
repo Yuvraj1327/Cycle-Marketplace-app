@@ -143,6 +143,7 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em;
 .search input { padding-left: 34px; }
 .filter { display: flex; flex-direction: column; gap: 3px; font-size: 0.75rem; color: var(--c-muted); font-weight: 600; }
 .filter select { min-width: 140px; }
+.filter input { font: inherit; font-weight: 400; padding: 9px 12px; border: 1px solid #c9d3df; border-radius: 9px; background: #fff; color: var(--c-ink); }
 .table-wrap { overflow-x: auto; border: 1px solid var(--c-line); border-radius: 10px; }
 .table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .table th { text-align: left; background: #f8fafc; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--c-muted); padding: 10px 12px; white-space: nowrap; border-bottom: 1px solid var(--c-line); }
@@ -255,6 +256,9 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em;
   .user-name { display: none; }
 }
 @media (max-width: 560px) {
+  .grid.metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .metric { padding: 12px; }
+  .metric-value { font-size: 1.45rem; }
   .form-grid { grid-template-columns: 1fr; }
   .kv-row { grid-template-columns: 1fr; gap: 2px; }
   .toolbar { align-items: stretch; }

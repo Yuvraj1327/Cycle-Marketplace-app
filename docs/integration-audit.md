@@ -25,7 +25,7 @@ Written from the actual source of Steps 1–10, not from earlier prompts. "Verif
 | Verification against real Supabase | No project available | A staging Supabase project with the 20 migrations applied, the `banners`/`shop-images`/… buckets created by migration 09, the JWT signing keys, e-mail confirmation settings, and an admin created with `scripts/promote_admin`. |
 | iOS push / iOS builds | Xcode installation incomplete on the development machine; no Apple account | See above; not attempted. |
 | Production CORS / URLs | No deployed environments | The real admin origin(s) for `CORS_ORIGINS` and the API base URL per environment. |
-| Android release signing | No keystore | Out of scope for Step 11. |
+| Android release signing | No keystore | Step 12: release APK / AAB build for both apps; signing reads `android/key.properties` when it exists, otherwise the debug key is used (not uploadable). See `docs/deployment-guide.md` §6. |
 
 ## 3. Push notification design (what was built)
 
@@ -39,7 +39,7 @@ Written from the actual source of Steps 1–10, not from earlier prompts. "Verif
 
 * Backend 177 operations (58 shared/customer, 42 vendor, 77 admin) — `docs/api-integration-map.md`.
 * **Static contract check (new)**: customer app 52 calls, vendor app 50, admin console 75 — every one exists in the backend with the same method and path shape; the apps do not call each other's API areas; no client contains a `/__dev` path or a hard-coded production host.
-* **HTTP contract tests** (real FastAPI app, in-memory DB): admin 39, customer 85 (incl. 4 new push), vendor 89 (incl. 3 new push) — all pass.
+* **Client tests** (Step 12 recount): customer app 86 tests in total (47 unit/widget + 39 HTTP contract tests against the real FastAPI app with an in-memory DB), vendor app 90 (56 + 34), admin console 169 unit/component tests plus 39 HTTP contract tests — all pass.
 * **Cross-application workflows** (`backend/tests/test_cross_app_workflows.py`, 6 tests): A+B vendor onboarding → approval → product → moderation → customer visibility; C+F order across the 3 apps with money consistency, notifications and push; cancellation; D+E service booking with pickup/return; one identity provider for three roles.
 
 ### Payment webhook / provider security (existing, re-verified)
@@ -66,4 +66,10 @@ Written from the actual source of Steps 1–10, not from earlier prompts. "Verif
 
 ## 7. Not verified (stated plainly)
 
-Live Firebase (token issuance, delivery, tap handling on a real device, background/terminated behaviour); iOS; a real payment provider; real Supabase Auth flows (sign-up e-mail confirmation, refresh, password reset e-mail), real Storage uploads / signed URLs / MIME enforcement; Android release builds; behaviour on physical devices and real networks; performance under load (Step 12).
+Live Firebase (token issuance, delivery, tap handling on a real device, background/terminated behaviour); iOS; a real payment provider; real Supabase Auth flows (sign-up e-mail confirmation, refresh, password reset e-mail), real Storage uploads / signed URLs / MIME enforcement; Android release builds; behaviour on physical devices and real networks; performance under load (a local 60,000-product measurement exists, see `docs/final-project-audit.md` §10; no load test).
+
+## 8. Step 12 addendum
+
+* Re-verified this step: role isolation on real PostgreSQL, the 177-operation hostile-input sweep, schema conformance, N+1 guard, production-docs switch (`APP_ENV=production`), secrets scan (clean), release builds.
+* Found and fixed: admin sign-out left the browser session stored when Supabase was unreachable; customer / vendor sign-out did not complete its state change when the server-side revoke failed; backend→Supabase network failures returned a vague 502 (now 503 `service_unavailable`).
+* Unchanged and still external: Firebase project, payment provider, live Supabase verification, iOS. Full list: `docs/final-project-report.md` §F.

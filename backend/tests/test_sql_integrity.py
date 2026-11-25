@@ -593,3 +593,95 @@ def test_storage_buckets_are_configured_and_every_policy_enforces_ownership(svc_
     assert see(c1, "avatars") == 1 and see(c2, "avatars") == 0 and see(admin, "avatars") == 1 and see(None, "avatars") == 0 and see(VENDOR_USER, "avatars") == 0
     # nobody but the owner can delete or replace
     assert run(c2, f"delete from storage.objects where bucket_id = 'service-images' and name = '{own}'").stdout.strip() in ("", "DELETE 0") and see(admin, "service-images", own) == 1
+
+
+# ---------------------------------------------------------------------------------------------------- Step 12: privilege-escalation and data-isolation battery (real PostgreSQL RLS)
+def _attempt(shop, who, dml):
+    """Run one write as `who` (None = anon). Returns the number of rows it changed, or the string 'denied' when PostgreSQL refused it outright."""
+    role = "anon" if who is None else "authenticated"
+    claim = "" if who is None else f"set request.jwt.claim.sub = '{who}'; "
+    wrapped = dml if dml.lstrip().lower().startswith("insert") else f"with x as ({dml} returning 1) select count(*) from x"
+    res = shop.par([f"set role {role}; {claim}{wrapped}"])[0]
+    if res.returncode != 0 or "ERROR" in res.stderr:
+        return "denied"
+    return int(res.stdout.strip().splitlines()[-1]) if wrapped.startswith("with x") else 1
+
+
+def _count(shop, who, table):
+    role = "anon" if who is None else "authenticated"
+    claim = "" if who is None else f"set request.jwt.claim.sub = '{who}'; "
+    res = shop.par([f"set role {role}; {claim}select count(*) from public.{table}"])[0]
+    return "denied" if res.returncode != 0 else int(res.stdout.strip().splitlines()[-1])
+
+
+def test_users_cannot_escalate_or_read_each_others_records_in_the_database(shop):
+    q = shop.q
+    q("update public.products set stock_quantity = 10")
+    q(f"select public.place_order(public.t_payload('{cust(1)}','sec-key-001'))")
+    q(f"select public.register_device_token('{cust(1)}', '{tok(1)}', 'android', 'customer', null, null)")
+    q(f"insert into public.user_addresses (user_id, recipient_name, phone, address_line1, city, state, postal_code, address_type) values ('{cust(1)}','A','+919800000001','1 Rd','Pune','MH','411001','both')")
+    q(f"insert into public.carts (user_id) values ('{cust(1)}')")
+    q(f"update public.profiles set role = 'admin' where id = '{cust(30)}'")
+    q("insert into public.coupons (code, discount_type, discount_value) values ('SECRET10','percentage',10)")
+    q("insert into public.audit_log (actor_id, actor_role, action, entity_type) values (null,'admin','x','order')")
+    q("update public.vendor_orders set released_at = now()")
+    q("select public.transition_vendor_order((select id from public.vendor_orders), null, 'accepted', '" + VENDOR_USER + "', 'vendor', null)")
+    private = ["orders", "vendor_orders", "order_items", "payments", "refunds", "user_addresses", "carts", "notifications", "support_tickets", "vendor_settlements", "audit_log",
+               "payment_events", "coupons", "commission_rules", "wishlists", "order_status_history", "device_tokens"]
+    # a different customer sees none of customer 1's records; an anonymous caller sees none of any
+    for table in private:
+        assert _count(shop, cust(2), table) in (0, "denied"), ("another customer can read", table)
+        assert _count(shop, None, table) in (0, "denied"), ("anon can read", table)
+    assert _count(shop, cust(2), "device_tokens") == "denied" and _count(shop, cust(1), "device_tokens") == "denied", "nobody reads device tokens through the API"
+    assert _count(shop, cust(1), "orders") == 1 and _count(shop, cust(1), "notifications") >= 1, "the owner still sees their own records"
+    assert _count(shop, VENDOR_USER, "orders") == 1 and _count(shop, cust(2), "profiles") == 1, "vendors see orders of their sales; users see only their own profile"
+    # customers: every attempt to write money, roles, approvals or other people's data is refused or changes nothing
+    forbidden_for_customer = [
+        f"update public.profiles set role = 'admin' where id = '{cust(1)}'",
+        f"update public.profiles set role = 'vendor' where id = '{cust(1)}'",
+        f"update public.profiles set full_name = 'hacked' where id = '{cust(1)}'",
+        f"update public.orders set status = 'completed', total_amount = 1 where customer_id = '{cust(1)}'",
+        f"update public.payments set status = 'successful' where customer_id = '{cust(1)}'",
+        f"update public.vendor_orders set status = 'delivered'",
+        "update public.products set price = 1, approval_status = 'approved'",
+        f"update public.user_addresses set city = 'Hacked' where user_id <> '{cust(2)}'",
+        f"update public.notifications set title = 'x' where user_id = '{cust(1)}'",
+        "delete from public.audit_log", "delete from public.orders", "delete from public.payments", "delete from public.notifications where user_id <> '" + cust(2) + "'",
+        f"insert into public.orders (customer_id, payment_method, delivery_address, subtotal, total_amount) values ('{cust(2)}','cod','{{}}',1,1)",
+        f"insert into public.payments (customer_id, order_id, method, amount, status) values ('{cust(2)}', (select id from public.orders limit 1), 'cod', 1, 'successful')",
+        f"insert into public.refunds (payment_id, amount, status) values ((select id from public.payments limit 1), 1, 'processed')",
+        f"insert into public.notifications (user_id, type, title, message) values ('{cust(2)}','system','x','y')",
+        "insert into public.coupons (code, discount_type, discount_value) values ('FREE100','percentage',100)",
+        "insert into public.commission_rules (name, applies_to, commission_value) values ('zero','product',0)",
+        "insert into public.platform_settings (key, value) values ('payments.cod_enabled','true')",
+        "insert into public.audit_log (action, entity_type) values ('fake','order')",
+        "insert into public.banners (title, image_path) values ('x','banners/x.jpg')",
+        "insert into public.categories (kind, name, slug) values ('accessory','x','x')",
+        f"insert into public.vendor_settlements (vendor_id, vendor_order_id, gross_amount, net_amount) values ((select id from public.vendor_profiles), (select id from public.vendor_orders), 1, 1)",
+        f"insert into public.profiles (id, email, role) values ('{uuid.uuid4()}', 'x@x.t', 'admin')",
+    ]
+    for dml in forbidden_for_customer:
+        assert _attempt(shop, cust(2), dml) in ("denied", 0), ("customer could do", dml)
+    # vendors: no self-approval, no touching settlements / other vendors' data / fulfilment through the API
+    forbidden_for_vendor = [
+        "update public.vendor_profiles set verification_status = 'suspended'",   # (the seeded vendor is approved: any CHANGE must be refused)
+        "update public.vendor_profiles set review_notes = 'trust me'",
+        "update public.products set approval_status = 'approved', is_featured = true",
+        "update public.vendor_orders set status = 'delivered', total_amount = 99999",
+        "update public.vendor_settlements set status = 'paid', net_amount = 99999",
+        f"update public.profiles set role = 'admin' where id = '{VENDOR_USER}'",
+        f"update public.profiles set status = 'active', role = 'customer' where id = '{VENDOR_USER}'",
+        "update public.orders set status = 'cancelled'", "update public.payments set status = 'successful'",
+        "insert into public.commission_rules (name, applies_to, commission_value) values ('zero','product',0)",
+        "insert into public.vendor_settlements (vendor_id, vendor_order_id, gross_amount, net_amount) values ((select id from public.vendor_profiles), (select id from public.vendor_orders), 1, 1)",
+        "delete from public.vendor_orders", "delete from public.audit_log",
+    ]
+    for dml in forbidden_for_vendor:
+        assert _attempt(shop, VENDOR_USER, dml) in ("denied", 0), ("vendor could do", dml)
+    # anonymous callers can write nothing at all
+    for dml in ("update public.products set price = 0", "delete from public.categories", "insert into public.banners (title, image_path) values ('x','banners/x.jpg')", "update public.orders set status = 'cancelled'"):
+        assert _attempt(shop, None, dml) in ("denied", 0), ("anon could do", dml)
+    # ...and none of that changed anything
+    assert q("select role from public.profiles where id = '" + cust(1) + "'") == "customer" and q("select count(*) from public.coupons") == "1"
+    assert q("select count(*) from public.orders where status = 'completed' or total_amount = 1") == "0" and q("select count(*) from public.payments where status = 'successful'") == "0"
+    assert q("select verification_status from public.vendor_profiles") == "approved" and q("select count(*) from public.audit_log") == "1"

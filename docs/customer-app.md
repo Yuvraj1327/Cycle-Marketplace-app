@@ -21,7 +21,7 @@ Code: `apps/customer_app/` (see its README for run/test commands).
 | `flutter build apk --debug` | built (≈154 MB debug APK) |
 | Backend `pytest` | 402 passed |
 
-**Not verified** (needs external setup or a device): real Supabase Auth sign-in/sign-up/reset/phone OTP, real Supabase Storage uploads & signed URLs, a real payment gateway, push notifications (out of scope), on-device/emulator UI run & screenshots, iOS build.
+**Not verified** (needs external setup or a device): real Supabase Auth sign-in/sign-up/reset/phone OTP, real Supabase Storage uploads & signed URLs, a real payment gateway, push delivery to a phone (the code exists since Step 11; no Firebase project), on-device/emulator UI run & screenshots, iOS build. Step 12 added release APK / AAB builds (debug-signed: no keystore) — see `docs/final-project-report.md`.
 
 ## Known gaps / client decisions
 

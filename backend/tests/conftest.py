@@ -81,6 +81,11 @@ def _clause(row, text):
     raise AssertionError(f"unsupported or_ clause {text!r}")
 
 
+# ---- Step 12: record every table/column/RPC the backend touches, so test_zz_schema_conformance.py can check them against the REAL schema.
+# The in-memory double silently accepts a misspelled column or a missing NOT NULL value; PostgreSQL would not.
+RECORDED: dict = {"columns": set(), "inserts": {}, "values": set(), "rpcs": {}}
+
+
 class FakeQuery:
     def __init__(self, db, table, actor):
         self.db, self.table_name, self.actor = db, table, actor
@@ -161,8 +166,54 @@ class FakeQuery:
         raise AssertionError(self.op)
 
 
+def _record_filter(name):
+    original = getattr(FakeQuery, name)
+
+    def wrapper(self, col, *a, **k):
+        RECORDED["columns"].add((self.table_name, col))
+        return original(self, col, *a, **k)
+    setattr(FakeQuery, name, wrapper)
+
+
+for _n in ("eq", "neq", "gt", "gte", "lt", "lte", "in_", "contains", "is_", "ilike", "order"):
+    _record_filter(_n)
+
+_select, _insert, _update, _or = FakeQuery.select, FakeQuery.insert, FakeQuery.update, FakeQuery.or_
+
+
+def _rec_select(self, cols="*", **k):
+    if isinstance(cols, str) and cols != "*" and "(" not in cols:
+        for c in cols.split(","):
+            RECORDED["columns"].add((self.table_name, c.strip()))
+    return _select(self, cols, **k)
+
+
+def _rec_write(original, kind):
+    def wrapper(self, values):
+        for row in (values if isinstance(values, list) else [values]):
+            for col, val in row.items():
+                RECORDED["columns"].add((self.table_name, col))
+                if isinstance(val, str):
+                    RECORDED["values"].add((self.table_name, col, val))
+            if kind == "insert":
+                RECORDED["inserts"].setdefault(self.table_name, []).append(frozenset(row))
+        return original(self, values)
+    return wrapper
+
+
+def _rec_or(self, expr):
+    for clause in _split_top(expr):
+        RECORDED["columns"].add((self.table_name, clause.split(".", 1)[0]))
+    return _or(self, expr)
+
+
+FakeQuery.select, FakeQuery.insert, FakeQuery.update, FakeQuery.or_ = _rec_select, _rec_write(_insert, "insert"), _rec_write(_update, "update"), _rec_or
+
+
 class _Rpc:
-    def __init__(self, db, actor, fn, params): self.db, self.actor, self.fn, self.params = db, actor, fn, params
+    def __init__(self, db, actor, fn, params):
+        self.db, self.actor, self.fn, self.params = db, actor, fn, params
+        RECORDED["rpcs"].setdefault(fn, set()).add(frozenset(params))
 
     def execute(self):
         if self.actor != SERVICE:
