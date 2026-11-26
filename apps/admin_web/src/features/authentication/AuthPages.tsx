@@ -4,6 +4,8 @@ import { useAuth } from '../../app/providers/authContext'
 import { AuthFailure } from '../../services/supabase/gateway'
 import { Button, PageLoading } from '../../components/common/ui'
 import { errorMessage } from '../../services/api/client'
+import logo from '../../assets/admin-logo.png'
+import { APP_NAME } from '../../app/config'
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
@@ -12,8 +14,8 @@ function AuthShell({ title, subtitle, children }: { title: string; subtitle: str
     <div className="auth-wrap">
       <div className="auth-card">
         <div className="brand brand-lg">
-          <span className="brand-mark" aria-hidden="true">C</span>
-          <span><strong>Cycle Marketplace</strong><small>Admin console</small></span>
+          <img className="brand-logo" src={logo} alt="" width="55" height="60" />
+          <span><strong>{APP_NAME}</strong><small>Admin console</small></span>
         </div>
         <h1>{title}</h1>
         <p className="muted">{subtitle}</p>

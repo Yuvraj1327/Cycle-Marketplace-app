@@ -43,12 +43,12 @@ describe('no privileged credentials in the browser app', () => {
       expect(text, f).not.toMatch(/Authorization/)                          // bearer tokens are attached only by the API client
     }
   })
-  it('image uploads go only to the admin-writable public `banners` bucket, through the signed-in session', () => {
+  it('image uploads go only to the `banners` bucket (admin-writable) or the administrator\'s own `avatars` folder, through the signed-in session', () => {
     const gateway = code(join(root, 'services', 'supabase', 'gateway.ts'))
-    expect(gateway).toMatch(/uploadImage\(bucket: 'banners'/)
-    expect(gateway.match(/storage\.from\(/g)).toHaveLength(1)
+    expect(gateway).toMatch(/uploadImage\(bucket: 'banners' \| 'avatars'/)
+    expect(gateway.match(/storage\.from\(/g)).toHaveLength(2) // upload + the signed link to a private avatar
     for (const f of source.filter((x) => x.includes(join('src', 'features')))) {
-      for (const m of code(f).matchAll(/uploadImage\(\s*'([^']+)'/g)) expect(m[1], f).toBe('banners')
+      for (const m of code(f).matchAll(/uploadImage\(\s*'([^']+)'/g)) expect(['banners', 'avatars'], f).toContain(m[1])
     }
   })
   it('the only API origin used by services is the configured backend (no direct database access)', () => {

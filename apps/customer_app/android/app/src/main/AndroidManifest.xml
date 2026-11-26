@@ -3,7 +3,7 @@
     <!-- Android 13+: asked at runtime (firebase_messaging) after sign-in; declining only turns system pushes off, in-app notifications keep working -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
-        android:label="Cycle Marketplace"
+        android:label="My Cycle Clinic"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -45,7 +45,7 @@ describe('admin authentication & route protection', () => {
     await userEvent.type(await screen.findByLabelText('E-mail'), 'root@example.com')
     await userEvent.type(screen.getByLabelText('Password'), 'Secret123')
     await userEvent.click(screen.getByRole('button', { name: 'Sign in' }))
-    expect(await screen.findByRole('heading', { name: 'Overview' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Welcome back/ })).toBeInTheDocument()
     const whoami = backend.calls.find((c) => c.path === '/auth/me')!
     expect(whoami.auth).toBe('Bearer tok-admin')
     expect(gateway.signOutCalls).toBe(0)
@@ -80,7 +80,7 @@ describe('admin authentication & route protection', () => {
     localStorage.setItem('admin', 'true')
     renderApp({ gateway: fakeGateway({ token: 'tok-customer' }), routes: baseRoutes('customer') })
     expect(await screen.findByText(/not an administrator/i)).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Overview' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /Welcome back/ })).not.toBeInTheDocument()
     localStorage.clear()
   })
 
@@ -93,7 +93,7 @@ describe('admin authentication & route protection', () => {
   it('the session expiring while using the console signs the admin out', async () => {
     let expired = false
     const { gateway } = renderApp({ gateway: fakeGateway({ token: 'tok' }), routes: { ...baseRoutes(), 'GET /admin/customers': () => (expired ? err(401, 'token_expired', 'expired') : { body: page([customer(1)]) }) } })
-    await screen.findByRole('heading', { name: 'Overview' })
+    await screen.findByRole('heading', { name: /Welcome back/ })
     expired = true
     await userEvent.click(screen.getAllByRole('link', { name: 'Customers' })[0])
     expect(await screen.findByText(/session has expired/i)).toBeInTheDocument()
@@ -103,12 +103,12 @@ describe('admin authentication & route protection', () => {
   it('losing admin rights mid-session (backend 403) shows Access denied and keeps the admin pages closed', async () => {
     renderApp({ gateway: fakeGateway({ token: 'tok' }), routes: { ...baseRoutes(), 'GET /admin/customers': err(403, 'permission_denied', 'Your role is not allowed to perform this action.') } })
     expect(await screen.findByRole('heading', { name: 'Access denied' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Overview' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /Welcome back/ })).not.toBeInTheDocument()
   })
 
   it('logout asks for confirmation, calls the backend, signs out of the provider and returns to login', async () => {
     const { backend, gateway } = renderApp({ gateway: fakeGateway({ token: 'tok' }), routes: baseRoutes() })
-    await screen.findByRole('heading', { name: 'Overview' })
+    await screen.findByRole('heading', { name: /Welcome back/ })
     await userEvent.click(screen.getByRole('button', { name: /Root Admin/ }))
     await userEvent.click(screen.getByRole('menuitem', { name: 'Sign out' }))
     const dialog = await screen.findByRole('dialog')

@@ -42,6 +42,7 @@ export function fakeGateway(opts: { token?: string | null; failSignInWith?: stri
     async signOut() { g.signOutCalls++; g.token = null; g.listeners.forEach((l) => l(false)) },
     async sendPasswordReset() {},
     async changePassword(_e, current, next) { g.changed.push({ current, next }) },
+    async signedUrl(_bucket, path) { return `https://storage.test/signed/${path}` },
     async uploadImage(bucket, path, file) {
       if (g.failUpload) throw new AuthFailure(g.failUpload)
       g.uploads.push({ bucket, path, type: file.type, size: file.size })
@@ -87,7 +88,7 @@ export const err = (status: number, code: string, message: string) => ({ status,
 export const me = (role = 'admin', status = 'active') => ({
   id: 'u-1', email: 'root@example.com', phone: null, role, status, vendor_verification_status: null,
   session: { session_id: 's', assurance_level: 'aal1', token_expires_at: '2030-01-01T00:00:00Z' },
-  profile: { id: 'u-1', full_name: 'Root Admin', email: 'root@example.com', phone: null, role, status, avatar_path: null, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z' },
+  profile: { id: 'u-1', full_name: 'Root Admin', email: 'root@example.com', phone: null, role, status, avatar_path: null, preferences: {}, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z' },
 })
 
 export const page = <T,>(items: T[], extra: Partial<{ total: number; page: number; pages: number; limit: number }> = {}) => ({

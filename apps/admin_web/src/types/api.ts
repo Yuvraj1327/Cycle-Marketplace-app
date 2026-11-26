@@ -26,8 +26,16 @@ export interface Profile {
   role: string
   status: string
   avatar_path: string | null
+  /** Display preferences saved on the account (`theme`, `timezone`, `date_format`); any key may be missing. */
+  preferences?: Partial<StoredPreferences>
   created_at: string
   updated_at: string
+}
+
+export interface StoredPreferences {
+  theme: 'light' | 'dark' | 'system'
+  timezone: string
+  date_format: 'D MMM YYYY' | 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD'
 }
 
 export interface Me {

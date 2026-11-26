@@ -17,6 +17,8 @@ which use the service-role client **after** authorisation. Nothing is ever delet
 | `PATCH /admin/vendors/{id}/account-status` | the vendor's login account (`active`/`inactive`/`restricted`), separate from verification |
 
 Migration `20260101000018_admin_console.sql`: read-only `admin_dashboard_summary(date, date)` and `admin_entity_counts(text, uuid[])` (service_role only). No table changes.
+**Account Settings** (`/profile`, pinned at the bottom of the sidebar): profile (name, phone, picture in the private `avatars` bucket under the admin's own folder, then `avatar_path` via `PUT /profiles/me`), appearance (light / dark / system), security (password via Supabase Auth, logout) and basic preferences (time zone, date format; currency is fixed to INR). Theme, time zone and date format are stored in `profiles.preferences` (migration `20260101000022_profile_preferences.sql`; `PUT /profiles/me` with `{"preferences": {...}}`, merged server-side) and cached in `localStorage` so the theme applies before first paint. If the migration is not applied yet the settings still work on this device and the page says they could not be saved to the account.
+
 Existing admin endpoints reused as-is: `GET /admin/orders|service-bookings|products` (filterable by `customer_id` / `vendor_id`), `GET /admin/payments/summary`, `GET/PUT /profiles/me`, `GET /auth/me`.
 
 ## Security model

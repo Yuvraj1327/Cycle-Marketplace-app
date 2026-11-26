@@ -24,5 +24,12 @@ class ProfileService:
         if avatar is not None and not avatar.startswith(f"{user.id}/"):
             raise ValidationFailedError("avatar_path must be inside your own storage folder.")
 
+        if "preferences" in values:
+            # a partial update changes only the keys that were sent; the stored ones are kept
+            sent = {k: v for k, v in (values["preferences"] or {}).items() if v is not None}
+            if not sent:
+                raise ValidationFailedError("No preferences supplied.")
+            values["preferences"] = {**(user.profile.get("preferences") or {}), **sent}
+
         # role / status / email are not accepted by the schema; the DB guard trigger enforces the same rule.
         return self.repo.update_own(user.id, values)

@@ -19,7 +19,9 @@ export interface AuthGateway {
   changePassword(email: string, current: string, next: string): Promise<void>
   /** Uploads an image to a PUBLIC bucket as the signed-in administrator (storage policy `banners_admin_write` enforces admin-only writes).
    *  Only the stored path is then registered with FastAPI. No credential other than the user's own session is ever used. */
-  uploadImage(bucket: 'banners', path: string, file: File): Promise<void>
+  uploadImage(bucket: 'banners' | 'avatars', path: string, file: File): Promise<void>
+  /** A short-lived link to an image in a PRIVATE bucket (the `avatars` bucket: the owner and administrators may read it). Null when it cannot be created. */
+  signedUrl(bucket: 'avatars', path: string): Promise<string | null>
 }
 
 /** Shape of supabase-js `AuthError` (only what is needed here). */
@@ -85,6 +87,10 @@ export function createSupabaseGateway(client: SupabaseClient): AuthGateway {
     async uploadImage(bucket, path, file) {
       const { error } = await client.storage.from(bucket).upload(path, file, { contentType: file.type, upsert: false, cacheControl: '3600' })
       if (error) throw new AuthFailure(error.message.toLowerCase().includes('row-level security') ? 'You are not allowed to upload images.' : `The image could not be uploaded: ${error.message}`)
+    },
+    async signedUrl(bucket, path) {
+      const { data, error } = await client.storage.from(bucket).createSignedUrl(path, 3600)
+      return error ? null : data.signedUrl
     },
     async changePassword(email, current, next) {
       const check = await client.auth.signInWithPassword({ email, password: current })

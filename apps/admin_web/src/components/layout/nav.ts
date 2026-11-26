@@ -10,7 +10,7 @@ export interface NavGroup {
   items: NavItem[]
 }
 
-const I = {
+export const I = {
   home: 'M3 12 12 3l9 9M5 10v10h5v-6h4v6h5V10',
   people: 'M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0ZM4 21a8 8 0 0 1 16 0',
   store: 'M3 9l1.5-5h15L21 9M3 9v11h18V9M3 9h18M9 20v-6h6v6',
@@ -31,8 +31,15 @@ const I = {
   chart: 'M4 20V10M10 20V4M16 20v-8M22 20H2',
   sliders: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
   gift: 'M3 8h18v4H3V8Zm2 4v9h14v-9M12 8v13M12 8c-2 0-4-1-4-3a2 2 0 0 1 4 0c0-2 4-2 4 0 0 2-2 3-4 3Z',
-  user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 9a8 8 0 0 1 16 0',
 }
+
+/** Account Settings is not part of the scrolling groups: the layout pins it to the bottom of the sidebar. */
+export const ACCOUNT_NAV = {
+  to: '/profile',
+  label: 'Account Settings',
+  // gear
+  icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z',
+} satisfies NavItem
 
 export const NAV_GROUPS: NavGroup[] = [
   { heading: 'Main', items: [
@@ -75,6 +82,5 @@ export const NAV_GROUPS: NavGroup[] = [
     { to: '/settings', label: 'Platform Settings', icon: I.sliders, end: true },
     { to: '/settings/charges', label: 'Pickup and Delivery Charges', icon: I.truck },
     { to: '/settings/coupons', label: 'Offers and Coupons', icon: I.gift },
-    { to: '/profile', label: 'Account Settings', icon: I.user },
   ] },
 ]

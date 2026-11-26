@@ -13,7 +13,7 @@ class VendorApp extends ConsumerWidget {
       pushControllerProvider,
     ); // keeps device registration and notification taps alive for the whole session
     return MaterialApp.router(
-      title: 'Cycle Vendor',
+      title: 'My Cycle Clinic',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       scaffoldMessengerKey: pushMessengerKey,

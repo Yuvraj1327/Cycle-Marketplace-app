@@ -1,7 +1,7 @@
 import type {
   AccountStatus, AdminBookingItem, AdminOrder, AdminOrderItem, AdminProduct, AdminProductItem, AdminService, Announcement, AnnouncementInput, AuditRecord, Banner, BannerInput,
   BookingDetail, BookingListItem, BusinessType, Category, CategoryInput, CommissionRule, CommissionRuleInput, Coupon, CouponInput, CustomerDetail, CustomerListItem, Dashboard,
-  DispatchResult, FulfilmentItem, Me, NotificationRecord, Page, PaymentDetail, PaymentRecord, PickupItem, Profile, ProviderInfo, PushStatus, RefundRecord, Report, ReportKind, RevenueSummary, ServiceCategory,
+  DispatchResult, FulfilmentItem, Me, NotificationRecord, Page, PaymentDetail, PaymentRecord, PickupItem, Profile, ProviderInfo, StoredPreferences, PushStatus, RefundRecord, Report, ReportKind, RevenueSummary, ServiceCategory,
   Setting, SettlementPage, SortBy, Ticket, TimelineEvent, VendorDetail, VendorListItem, VerificationStatus,
 } from '../../types/api'
 import type { ApiClient } from './client'
@@ -73,8 +73,8 @@ export function createServices(api: ApiClient) {
 
   const profile = {
     get: () => api.get<Profile>('/profiles/me'),
-    /** Only name and phone: role, status and e-mail are not accepted by the backend (422). */
-    update: (v: { full_name?: string; phone?: string }) => api.put<Profile>('/profiles/me', v),
+    /** Only name, phone, avatar and display preferences: role, status and e-mail are not accepted by the backend (422). */
+    update: (v: { full_name?: string; phone?: string; avatar_path?: string; preferences?: Partial<StoredPreferences> }) => api.put<Profile>('/profiles/me', v),
   }
 
   // ------------------------------------------------------------------ marketplace

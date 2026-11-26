@@ -62,3 +62,19 @@ def test_vendor_and_admin_can_use_own_profile(client, db, auth):
     for role in ("vendor", "admin"):
         uid = db.add_profile(role=role)
         assert client.get(P, headers=auth(uid)).json()["role"] == role
+
+
+def test_preferences_are_saved_merged_and_returned(client, db, auth):
+    uid = db.add_profile(preferences={})
+    r = client.put(P, headers=auth(uid), json={"preferences": {"theme": "dark", "timezone": "Asia/Kolkata", "date_format": "DD/MM/YYYY"}})
+    assert r.status_code == 200 and r.json()["preferences"] == {"theme": "dark", "timezone": "Asia/Kolkata", "date_format": "DD/MM/YYYY"}
+    # a partial update changes only what was sent
+    r = client.put(P, headers=auth(uid), json={"preferences": {"theme": "light"}})
+    assert r.json()["preferences"]["theme"] == "light" and r.json()["preferences"]["timezone"] == "Asia/Kolkata"
+    assert client.get(P, headers=auth(uid)).json()["preferences"]["theme"] == "light"
+
+
+@pytest.mark.parametrize("prefs", [{"theme": "blue"}, {"currency": "INR"}, {"timezone": "Mars/Base"}, {"date_format": "YY"}, {"unknown": 1}, {}])
+def test_invalid_preferences_rejected(client, db, auth, prefs):
+    uid = db.add_profile(preferences={})
+    assert client.put(P, headers=auth(uid), json={"preferences": prefs}).status_code in (400, 422)

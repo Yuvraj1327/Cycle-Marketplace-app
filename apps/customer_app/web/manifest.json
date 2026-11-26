@@ -1,11 +1,11 @@
 {
-    "name": "customer_app",
-    "short_name": "customer_app",
+    "name": "My Cycle Clinic",
+    "short_name": "My Cycle Clinic",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#01575A",
+    "theme_color": "#01575A",
+    "description": "My Cycle Clinic - cycle marketplace and repair services.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

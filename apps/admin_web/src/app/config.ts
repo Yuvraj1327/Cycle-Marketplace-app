@@ -2,6 +2,9 @@
  *  the service-role key and any payment/API secret must never be put in this app (everything prefixed VITE_ is bundled into the browser). */
 const env = import.meta.env
 
+/** The product name, as shown in the customer and vendor apps. */
+export const APP_NAME = 'My Cycle Clinic'
+
 export const config = {
   apiBaseUrl: ((env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8000').replace(/\/+$/, ''),
   supabaseUrl: (env.VITE_SUPABASE_URL as string | undefined) ?? '',
