@@ -305,3 +305,16 @@ def test_cors_origin_parsing_accepts_json_or_comma_separated_and_refuses_wildcar
     assert parse_origins("http://localhost:5174, https://admin.example.com/") == ["http://localhost:5174", "https://admin.example.com"]
     with pytest.raises(ValueError):
         parse_origins("*")
+
+
+def test_cors_origin_regex_is_opt_in_and_still_rejects_other_hosts(monkeypatch):
+    from fastapi import FastAPI
+    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.testclient import TestClient
+    app = FastAPI()
+    app.add_middleware(CORSMiddleware, allow_origins=[], allow_origin_regex=r"^http://(localhost|127\.0\.0\.1)(:[0-9]+)?$", allow_methods=["GET"], allow_headers=["Authorization"])
+    c = TestClient(app)
+    hdrs = {"Access-Control-Request-Method": "GET", "Access-Control-Request-Headers": "authorization"}
+    assert c.options("/x", headers={"Origin": "http://localhost:59582", **hdrs}).headers.get("access-control-allow-origin") == "http://localhost:59582"
+    for evil in ("https://evil.example", "http://localhost.evil.example", "https://localhost:1"):
+        assert "access-control-allow-origin" not in c.options("/x", headers={"Origin": evil, **hdrs}).headers, evil

@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     # Browser origins allowed to call this API (the admin console). In production set CORS_ORIGINS to the real https admin origin(s).
     cors_origins: Annotated[list[str], NoDecode] = DEFAULT_DEV_ORIGINS
+    # Optional regex for origins whose port changes on every run (e.g. `flutter run -d chrome` picks a random localhost port).
+    # Empty = off. Dev example: ^http://(localhost|127\.0\.0\.1)(:\d+)?$ . Never use a catch-all pattern.
+    cors_origin_regex: str = ""
 
     supabase_url: str = ""
     supabase_anon_key: str = ""
