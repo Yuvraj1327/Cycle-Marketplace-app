@@ -26,7 +26,7 @@ class AppButton extends StatelessWidget {
             height: 22,
             child: CircularProgressIndicator(
               strokeWidth: 2.5,
-              color: outlined ? AppColors.primary : Colors.white,
+              color: outlined ? context.palette.primary : Colors.white,
             ),
           )
         : Row(
@@ -43,9 +43,9 @@ class AppButton extends StatelessWidget {
     if (outlined) {
       return OutlinedButton(
         style: OutlinedButton.styleFrom(
-          foregroundColor: danger ? AppColors.danger : AppColors.primary,
+          foregroundColor: danger ? AppColors.danger : context.palette.primary,
           side: BorderSide(
-            color: danger ? AppColors.danger : AppColors.primary,
+            color: danger ? AppColors.danger : context.palette.primary,
           ),
         ),
         onPressed: cb,
@@ -68,70 +68,73 @@ class MetricCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.icon,
-    this.color = AppColors.primary,
+    this.color,
     this.onTap,
     this.caption,
   });
   final String label, value;
   final String? caption;
   final IconData icon;
-  final Color color;
+  final Color? color;
   final VoidCallback? onTap;
   @override
-  Widget build(BuildContext context) => Card(
-    child: InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(7),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: .12),
-                    borderRadius: BorderRadius.circular(9),
+  Widget build(BuildContext context) {
+    final color = this.color ?? context.palette.primary;
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: .12),
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: Icon(icon, size: 18, color: color),
                   ),
-                  child: Icon(icon, size: 18, color: color),
-                ),
-                const Spacer(),
-                if (onTap != null)
-                  const Icon(
-                    Icons.chevron_right,
-                    size: 18,
-                    color: AppColors.muted,
+                  const Spacer(),
+                  if (onTap != null)
+                    Icon(
+                      Icons.chevron_right,
+                      size: 18,
+                      color: context.palette.muted,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
                   ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
                 ),
               ),
-            ),
-            Text(
-              label,
-              style: const TextStyle(color: AppColors.muted, fontSize: 12),
-            ),
-            if (caption != null)
               Text(
-                caption!,
-                style: const TextStyle(color: AppColors.muted, fontSize: 11),
+                label,
+                style: TextStyle(color: context.palette.muted, fontSize: 12),
               ),
-          ],
+              if (caption != null)
+                Text(
+                  caption!,
+                  style: TextStyle(color: context.palette.muted, fontSize: 11),
+                ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// Horizontal bar chart of REAL counts (never invented values). Bars are scaled to the largest value; zero rows still show their label.
@@ -159,7 +162,7 @@ class CountBars extends StatelessWidget {
                         Container(
                           height: 12,
                           decoration: BoxDecoration(
-                            color: AppColors.line,
+                            color: context.palette.line,
                             borderRadius: BorderRadius.circular(6),
                           ),
                         ),
@@ -251,7 +254,7 @@ class InfoRow extends StatelessWidget {
           width: 118,
           child: Text(
             label,
-            style: const TextStyle(color: AppColors.muted, fontSize: 13),
+            style: TextStyle(color: context.palette.muted, fontSize: 13),
           ),
         ),
         Expanded(

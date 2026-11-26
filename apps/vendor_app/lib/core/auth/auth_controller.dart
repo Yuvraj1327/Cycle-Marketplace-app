@@ -6,6 +6,7 @@ import '../../features/authentication/models.dart';
 import '../../features/business_profile/models.dart';
 import '../api/api_exception.dart';
 import '../providers.dart';
+import 'auth_service.dart';
 import 'sign_out_hooks.dart';
 
 enum AuthStatus { unknown, signedOut, signedIn, error }
@@ -40,6 +41,8 @@ class AuthState {
 class AuthController extends Notifier<AuthState> {
   StreamSubscription<bool>? _sub;
   bool _loading = false;
+  Future<void>?
+  _inFlight; // the running profile load, so Google sign-in can wait for it
 
   @override
   AuthState build() {
@@ -68,6 +71,8 @@ class AuthController extends Notifier<AuthState> {
   Future<void> _load() async {
     if (_loading) return;
     _loading = true;
+    final done = Completer<void>();
+    _inFlight = done.future;
     try {
       final me = await ref.read(authRepositoryProvider).me();
       if (!me.isVendor) {
@@ -105,6 +110,7 @@ class AuthController extends Notifier<AuthState> {
       }
     } finally {
       _loading = false;
+      done.complete();
     }
   }
 
@@ -137,6 +143,29 @@ class AuthController extends Notifier<AuthState> {
         );
     if (r.signedIn) await _load();
     return r.signedIn;
+  }
+
+  /// Google sign-in. Google only proves WHO the person is; the role/status gate is the same `/auth/me` check as a password sign-in,
+  /// so a Google account of the wrong role is signed straight back out with a message. Cancelling throws [AuthCancelled].
+  Future<void> signInWithGoogle() async {
+    final google = await ref.read(authServiceProvider).signInWithGoogle();
+    if (!state.isSignedIn) await _load();
+    await _inFlight; // the auth-state listener may already be loading the profile: wait for it
+    final me = state.me;
+    final name = google.displayName?.trim();
+    if (state.isSignedIn &&
+        me != null &&
+        me.fullName.trim().isEmpty &&
+        name != null &&
+        name.isNotEmpty) {
+      // New Google accounts normally arrive with a name; if the provider did not supply one, fill the EMPTY profile name (best effort).
+      try {
+        await ref.read(profileRepositoryProvider).update(fullName: name);
+        await refreshMe();
+      } on ApiException {
+        // the name can be added later from the profile screen
+      }
+    }
   }
 
   Future<void> signOut() async {
@@ -172,6 +201,19 @@ class AuthController extends Notifier<AuthState> {
       state = AuthState(AuthStatus.signedIn, me: me, vendor: v);
     } on ApiException catch (e) {
       if (e.isUnauthorized) sessionExpired();
+    }
+  }
+
+  /// Re-read the account (name, phone, picture) after an edit, keeping the business profile as it is.
+  Future<void> refreshMe() async {
+    final current = state;
+    if (current.me == null) return;
+    try {
+      final me = await ref.read(authRepositoryProvider).me();
+      state = AuthState(AuthStatus.signedIn, me: me, vendor: current.vendor);
+    } on ApiException catch (e) {
+      if (e.isUnauthorized) sessionExpired();
+      // otherwise keep the old values; the edit screen shows its own error
     }
   }
 

@@ -10,10 +10,13 @@ import '../utils/format.dart';
 void showSnack(BuildContext context, String message, {bool error = false}) {
   final m = ScaffoldMessenger.of(context);
   m.hideCurrentSnackBar();
+  final dark = Theme.of(context).brightness == Brightness.dark;
   m.showSnackBar(
     SnackBar(
-      content: Text(message),
-      backgroundColor: error ? AppColors.danger : AppColors.ink,
+      content: Text(message, style: const TextStyle(color: Colors.white)),
+      backgroundColor: error
+          ? AppColors.danger
+          : (dark ? const Color(0xFF2A3A4C) : AppColors.ink),
     ),
   );
 }
@@ -42,9 +45,9 @@ class AppNetworkImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget placeholder() => Container(
-      color: AppColors.line.withValues(alpha: .6),
+      color: context.palette.line.withValues(alpha: .6),
       alignment: Alignment.center,
-      child: Icon(icon, color: AppColors.muted, size: 32),
+      child: Icon(icon, color: context.palette.muted, size: 32),
     );
     final u = url;
     Widget child = (u == null || u.isEmpty)
@@ -74,7 +77,7 @@ class PriceText extends StatelessWidget {
     money(value),
     style: (style ?? Theme.of(context).textTheme.titleMedium)?.copyWith(
       fontWeight: FontWeight.w800,
-      color: strike ? AppColors.muted : AppColors.primary,
+      color: strike ? context.palette.muted : context.palette.primary,
       decoration: strike ? TextDecoration.lineThrough : null,
     ),
   );
@@ -150,7 +153,11 @@ class StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = colorFor(status);
+    final base = colorFor(status);
+    // the fixed status colours are tuned for light surfaces; lift them a little on dark ones so the label stays readable
+    final c = Theme.of(context).brightness == Brightness.dark
+        ? Color.lerp(base, Colors.white, .35)!
+        : base;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -189,10 +196,10 @@ class EmptyState extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: .08),
+              color: context.palette.primary.withValues(alpha: .08),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 40, color: AppColors.primary),
+            child: Icon(icon, size: 40, color: context.palette.primary),
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(
@@ -204,7 +211,7 @@ class EmptyState extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Text(
               message!,
-              style: const TextStyle(color: AppColors.muted),
+              style: TextStyle(color: context.palette.muted),
               textAlign: TextAlign.center,
             ),
           ],

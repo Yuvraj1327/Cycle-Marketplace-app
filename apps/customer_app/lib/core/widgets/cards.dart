@@ -68,7 +68,7 @@ class ProductCard extends ConsumerWidget {
                               size: 20,
                               color: wished
                                   ? AppColors.danger
-                                  : AppColors.muted,
+                                  : context.palette.muted,
                             ),
                           ),
                         ),
@@ -105,8 +105,8 @@ class ProductCard extends ConsumerWidget {
                         [p.brand, p.model].whereType<String>().join(' · '),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.muted,
+                        style: TextStyle(
+                          color: context.palette.muted,
                           fontSize: 12,
                         ),
                       ),
@@ -117,8 +117,8 @@ class ProductCard extends ConsumerWidget {
                         'by ${p.vendor!.businessName}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.muted,
+                        style: TextStyle(
+                          color: context.palette.muted,
                           fontSize: 11,
                         ),
                       ),
@@ -175,12 +175,12 @@ class ServiceCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: .1),
+                      color: context.palette.primary.withValues(alpha: .1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.build_circle_outlined,
-                      color: AppColors.primary,
+                      color: context.palette.primary,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -195,7 +195,7 @@ class ServiceCard extends StatelessWidget {
                         if (s.provider != null)
                           Text(
                             s.provider!.businessName,
-                            style: const TextStyle(color: AppColors.muted),
+                            style: TextStyle(color: context.palette.muted),
                           ),
                       ],
                     ),
@@ -210,7 +210,7 @@ class ServiceCard extends StatelessWidget {
                     s.description!,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: AppColors.muted),
+                    style: TextStyle(color: context.palette.muted),
                   ),
                 ),
               const SizedBox(height: 10),
@@ -249,9 +249,9 @@ class _Meta extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Icon(icon, size: 15, color: AppColors.muted),
+      Icon(icon, size: 15, color: context.palette.muted),
       const SizedBox(width: 4),
-      Text(text, style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+      Text(text, style: TextStyle(color: context.palette.muted, fontSize: 12)),
     ],
   );
 }
@@ -307,7 +307,7 @@ class InfoRow extends StatelessWidget {
       children: [
         SizedBox(
           width: 120,
-          child: Text(label, style: const TextStyle(color: AppColors.muted)),
+          child: Text(label, style: TextStyle(color: context.palette.muted)),
         ),
         Expanded(
           child: Text(

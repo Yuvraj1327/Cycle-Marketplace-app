@@ -145,8 +145,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen>
                                 ),
                                 Text(
                                   dateTime(o.placedAt),
-                                  style: const TextStyle(
-                                    color: AppColors.muted,
+                                  style: TextStyle(
+                                    color: context.palette.muted,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -167,10 +167,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen>
                                   bold: true,
                                 ),
                                 if (o.commission == null)
-                                  const Text(
+                                  Text(
                                     'Commission not recorded yet (set on completion).',
                                     style: TextStyle(
-                                      color: AppColors.muted,
+                                      color: context.palette.muted,
                                       fontSize: 12,
                                     ),
                                   ),

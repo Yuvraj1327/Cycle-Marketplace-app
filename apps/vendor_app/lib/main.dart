@@ -12,6 +12,8 @@ import 'core/push/firebase_push_service.dart';
 import 'core/push/push_controller.dart';
 import 'core/push/push_service.dart';
 import 'features/authentication/screens.dart';
+import 'features/settings/avatar.dart';
+import 'features/settings/theme_mode.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,9 +37,12 @@ Future<void> main() async {
   // Firebase push: null (and therefore off) until the four FIREBASE_* values are supplied at build time.
   final PushService push =
       await FirebasePushService.create() ?? const NoopPushService();
+  final themeStore = await SharedPrefsThemeModeStore.create();
   runApp(
     ProviderScope(
       overrides: [
+        themeModeStoreProvider.overrideWithValue(themeStore),
+        avatarStorageProvider.overrideWithValue(SupabaseAvatarStorage()),
         authServiceProvider.overrideWithValue(SupabaseAuthService()),
         imageStorageProvider.overrideWithValue(SupabaseImageStorage()),
         pushServiceProvider.overrideWithValue(push),

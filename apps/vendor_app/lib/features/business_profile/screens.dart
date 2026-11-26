@@ -75,7 +75,7 @@ class HoursEditor extends StatelessWidget {
                   }),
                 ),
                 if (closed)
-                  const Text('Closed', style: TextStyle(color: AppColors.muted))
+                  Text('Closed', style: TextStyle(color: context.palette.muted))
                 else ...[
                   TextButton(
                     onPressed: () => _pick(context, d, true),
@@ -519,9 +519,9 @@ class _BusinessFormScreenState extends ConsumerState<BusinessFormScreen> {
                 ),
               ),
             if (_images.isEmpty)
-              const Text(
+              Text(
                 'No photos yet.',
-                style: TextStyle(color: AppColors.muted),
+                style: TextStyle(color: context.palette.muted),
               )
             else
               SizedBox(
@@ -645,7 +645,7 @@ class _VendorStatusScreenState extends ConsumerState<VendorStatusScreen> {
             Text(
               body,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.muted),
+              style: TextStyle(color: context.palette.muted),
             ),
             if ((v?.rejectionReason ?? '').isNotEmpty) ...[
               const SizedBox(height: 16),
@@ -697,10 +697,10 @@ class _VendorStatusScreenState extends ConsumerState<VendorStatusScreen> {
                 onPressed: () => context.push('/business/edit'),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Your changes are saved to your application. There is no automatic re-submission yet: an administrator decides whether to review it again.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.muted, fontSize: 12),
+                style: TextStyle(color: context.palette.muted, fontSize: 12),
               ),
             ],
             if (auth.stage == VendorStage.suspended &&
@@ -855,9 +855,9 @@ class BusinessProfileScreen extends ConsumerWidget {
                   humanizeStatus(v.verificationStatus),
                   bold: true,
                 ),
-                const Text(
+                Text(
                   'Verification and permissions are managed by the platform administrator and cannot be changed in the app.',
-                  style: TextStyle(color: AppColors.muted, fontSize: 12),
+                  style: TextStyle(color: context.palette.muted, fontSize: 12),
                 ),
               ],
             ),

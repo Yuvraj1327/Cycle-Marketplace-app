@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/authentication/models.dart';
 import '../api/api_exception.dart';
 import '../providers.dart';
+import 'auth_service.dart';
 import 'sign_out_hooks.dart';
 
 enum AuthStatus { unknown, signedOut, signedIn, error }
@@ -26,6 +27,8 @@ class AuthState {
 class AuthController extends Notifier<AuthState> {
   StreamSubscription<bool>? _sub;
   bool _loading = false;
+  Future<void>?
+  _inFlight; // the running profile load, so Google sign-in can wait for it
 
   @override
   AuthState build() {
@@ -54,6 +57,8 @@ class AuthController extends Notifier<AuthState> {
   Future<void> _loadMe() async {
     if (_loading) return;
     _loading = true;
+    final done = Completer<void>();
+    _inFlight = done.future;
     try {
       final me = await ref.read(authRepositoryProvider).me();
       if (!me.isCustomer) {
@@ -80,6 +85,7 @@ class AuthController extends Notifier<AuthState> {
       }
     } finally {
       _loading = false;
+      done.complete();
     }
   }
 
@@ -119,6 +125,29 @@ class AuthController extends Notifier<AuthState> {
         );
     if (result.signedIn) await _loadMe();
     return result.signedIn;
+  }
+
+  /// Google sign-in. Google only proves WHO the person is; the role/status gate is the same `/auth/me` check as a password sign-in,
+  /// so a Google account of the wrong role is signed straight back out with a message. Cancelling throws [AuthCancelled].
+  Future<void> signInWithGoogle() async {
+    final google = await ref.read(authServiceProvider).signInWithGoogle();
+    if (!state.isSignedIn) await _loadMe();
+    await _inFlight; // the auth-state listener may already be loading the profile: wait for it
+    final me = state.me;
+    final name = google.displayName?.trim();
+    if (state.isSignedIn &&
+        me != null &&
+        me.profile.fullName.trim().isEmpty &&
+        name != null &&
+        name.isNotEmpty) {
+      // New Google accounts normally arrive with a name; if the provider did not supply one, fill the EMPTY profile name (best effort).
+      try {
+        await ref.read(profileRepositoryProvider).update(fullName: name);
+        await refreshMe();
+      } on ApiException {
+        // the name can be added later from the profile screen
+      }
+    }
   }
 
   Future<void> signOut() async {

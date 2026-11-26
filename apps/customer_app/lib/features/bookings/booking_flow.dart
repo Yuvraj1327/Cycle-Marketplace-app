@@ -197,7 +197,7 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
           child: LinearProgressIndicator(
             value: (_step + 1) / _titles.length,
             minHeight: 4,
-            backgroundColor: AppColors.line,
+            backgroundColor: context.palette.line,
           ),
         ),
       ),
@@ -226,9 +226,11 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
                 top: false,
                 child: Container(
                   padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: const BoxDecoration(
-                    color: AppColors.surface,
-                    border: Border(top: BorderSide(color: AppColors.line)),
+                  decoration: BoxDecoration(
+                    color: context.palette.surface,
+                    border: Border(
+                      top: BorderSide(color: context.palette.line),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -374,12 +376,12 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
                   width: 78,
                   height: 78,
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.primary),
+                    border: Border.all(color: context.palette.primary),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.add_a_photo_outlined,
-                    color: AppColors.primary,
+                    color: context.palette.primary,
                   ),
                 ),
               ),
@@ -426,15 +428,15 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
         const SizedBox(height: 18),
         Text('Time slot', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'This is your preferred time. The provider confirms the appointment when they accept.',
-          style: TextStyle(color: AppColors.muted, fontSize: 12),
+          style: TextStyle(color: context.palette.muted, fontSize: 12),
         ),
         const SizedBox(height: 10),
         if (avail == null)
-          const Text(
+          Text(
             'Pick a date to see available slots.',
-            style: TextStyle(color: AppColors.muted),
+            style: TextStyle(color: context.palette.muted),
           )
         else
           avail.when(
@@ -495,12 +497,15 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
         _ServiceHeader(s),
         const SizedBox(height: 12),
         if (!canPickup)
-          const Card(
+          Card(
             child: Padding(
               padding: EdgeInsets.all(14),
               child: Row(
                 children: [
-                  Icon(Icons.storefront_outlined, color: AppColors.primary),
+                  Icon(
+                    Icons.storefront_outlined,
+                    color: context.palette.primary,
+                  ),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -542,7 +547,7 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
                   'Service area: PIN ${s.provider!.serviceAreaPostalCodes.join(', ')}',
-                  style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                  style: TextStyle(color: context.palette.muted, fontSize: 12),
                 ),
               ),
             SwitchListTile(
@@ -570,7 +575,7 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
               ),
             ),
             Card(
-              color: AppColors.primary.withValues(alpha: .06),
+              color: context.palette.primary.withValues(alpha: .06),
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: opts == null
@@ -671,9 +676,9 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
                   bold: true,
                 ),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'No payment is taken now. If the provider finds extra work needed, any additional charge is recorded on your booking and you are notified.',
-                  style: TextStyle(color: AppColors.muted, fontSize: 12),
+                  style: TextStyle(color: context.palette.muted, fontSize: 12),
                 ),
               ],
             ),
@@ -691,12 +696,12 @@ class _ServiceHeader extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: AppColors.primary.withValues(alpha: .07),
+      color: context.palette.primary.withValues(alpha: .07),
       borderRadius: BorderRadius.circular(12),
     ),
     child: Row(
       children: [
-        const Icon(Icons.build_circle_outlined, color: AppColors.primary),
+        Icon(Icons.build_circle_outlined, color: context.palette.primary),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
@@ -705,7 +710,7 @@ class _ServiceHeader extends StatelessWidget {
               Text(s.name, style: const TextStyle(fontWeight: FontWeight.w800)),
               Text(
                 s.provider?.businessName ?? '',
-                style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                style: TextStyle(color: context.palette.muted, fontSize: 12),
               ),
             ],
           ),
@@ -745,12 +750,12 @@ class _AddressPicker extends ConsumerWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              border: Border.all(color: AppColors.line),
+              border: Border.all(color: context.palette.line),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               'No $kind address chosen',
-              style: const TextStyle(color: AppColors.muted),
+              style: TextStyle(color: context.palette.muted),
             ),
           ),
         Align(

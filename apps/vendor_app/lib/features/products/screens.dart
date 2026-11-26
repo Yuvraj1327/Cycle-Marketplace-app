@@ -63,8 +63,8 @@ class ProductListCard extends StatelessWidget {
                     ].where((e) => (e ?? '').isNotEmpty).join(' · '),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.muted,
+                    style: TextStyle(
+                      color: context.palette.muted,
                       fontSize: 12,
                     ),
                   ),
@@ -78,9 +78,9 @@ class ProductListCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         p.condition == 'used' ? 'Used' : 'New',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.muted,
+                          color: context.palette.muted,
                         ),
                       ),
                       const Spacer(),
@@ -100,7 +100,7 @@ class ProductListCard extends StatelessWidget {
                         size: 14,
                         color: p.stock == 0
                             ? AppColors.danger
-                            : AppColors.muted,
+                            : context.palette.muted,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -109,18 +109,18 @@ class ProductListCard extends StatelessWidget {
                           fontSize: 12,
                           color: p.stock == 0
                               ? AppColors.danger
-                              : AppColors.muted,
+                              : context.palette.muted,
                           fontWeight: p.stock == 0
                               ? FontWeight.w700
                               : FontWeight.w400,
                         ),
                       ),
                       if (!p.isAvailable)
-                        const Text(
+                        Text(
                           '  ·  Hidden by you',
                           style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.muted,
+                            color: context.palette.muted,
                           ),
                         ),
                       const Spacer(),
@@ -921,9 +921,9 @@ class _ApprovalBanner extends StatelessWidget {
     _ =>
       active
           ? const SizedBox.shrink()
-          : const StatusBanner(
+          : StatusBanner(
               'This listing is inactive and hidden from customers.',
-              color: AppColors.muted,
+              color: context.palette.muted,
               icon: Icons.visibility_off_outlined,
             ),
   };
@@ -971,9 +971,9 @@ class _ImagesSection extends StatelessWidget {
             ),
           ],
         ),
-        const Text(
+        Text(
           'JPG, PNG or WebP, up to 5 MB each. The first image is the main photo.',
-          style: TextStyle(color: AppColors.muted, fontSize: 12),
+          style: TextStyle(color: context.palette.muted, fontSize: 12),
         ),
         if (progress != null)
           Padding(
@@ -992,9 +992,9 @@ class _ImagesSection extends StatelessWidget {
           ),
         const SizedBox(height: 8),
         if (total == 0)
-          const Text(
+          Text(
             'No images yet. Listings with photos sell better.',
-            style: TextStyle(color: AppColors.muted),
+            style: TextStyle(color: context.palette.muted),
           ),
         Wrap(
           spacing: 10,
@@ -1022,7 +1022,7 @@ class _ImagesSection extends StatelessWidget {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.primary,
+                                color: context.palette.primary,
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: const Text(
@@ -1271,10 +1271,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
             itemBuilder: (context, p) => ProductListCard(
               p,
               onTap: () => _edit(p, _paged.items.indexOf(p)),
-              trailing: const Icon(
+              trailing: Icon(
                 Icons.edit_outlined,
                 size: 16,
-                color: AppColors.primary,
+                color: context.palette.primary,
               ),
             ),
           ),

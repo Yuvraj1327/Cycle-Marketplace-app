@@ -99,12 +99,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       itemBuilder: (context, n) {
         final i = _paged.items.indexOf(n);
         return Container(
-          color: n.isRead ? null : AppColors.primary.withValues(alpha: .06),
+          color: n.isRead
+              ? null
+              : context.palette.primary.withValues(alpha: .06),
           child: ListTile(
             onTap: () => _open(n, i),
             leading: CircleAvatar(
-              backgroundColor: AppColors.primary.withValues(alpha: .1),
-              child: Icon(_icon(n.type), color: AppColors.primary),
+              backgroundColor: context.palette.primary.withValues(alpha: .1),
+              child: Icon(_icon(n.type), color: context.palette.primary),
             ),
             title: Text(
               n.title,
@@ -119,13 +121,13 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 const SizedBox(height: 2),
                 Text(
                   dateTime(n.createdAt),
-                  style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                  style: TextStyle(fontSize: 11, color: context.palette.muted),
                 ),
               ],
             ),
             trailing: n.isRead
                 ? null
-                : const Icon(Icons.circle, size: 10, color: AppColors.primary),
+                : Icon(Icons.circle, size: 10, color: context.palette.primary),
           ),
         );
       },

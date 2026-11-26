@@ -153,7 +153,7 @@ class _LogisticsListState extends ConsumerState<_LogisticsList>
                         ),
                         Text(
                           r.customer?.name ?? 'Customer',
-                          style: const TextStyle(color: AppColors.muted),
+                          style: TextStyle(color: context.palette.muted),
                         ),
                         const SizedBox(height: 6),
                         Text(
@@ -164,10 +164,10 @@ class _LogisticsListState extends ConsumerState<_LogisticsList>
                         const SizedBox(height: 6),
                         Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.schedule,
                               size: 16,
-                              color: AppColors.muted,
+                              color: context.palette.muted,
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -382,7 +382,7 @@ class _PickupDetailScreenState extends ConsumerState<PickupDetailScreen> {
                 delivery
                     ? 'Delivery is recorded as done when you mark the booking “Completed”.'
                     : 'Pickup is recorded as done when you mark the booking “Picked up”.',
-                style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                style: TextStyle(color: context.palette.muted, fontSize: 12),
               ),
             ),
           if (!closed && !bookingOpen)
@@ -421,9 +421,9 @@ class _PickupDetailScreenState extends ConsumerState<PickupDetailScreen> {
                 if (r.bookingStatus != null) StatusChip(r.bookingStatus!),
               ],
             ),
-            const Text(
+            Text(
               'Repair status is shown by the badge above. Pickup and return delivery have their own statuses below.',
-              style: TextStyle(color: AppColors.muted, fontSize: 12),
+              style: TextStyle(color: context.palette.muted, fontSize: 12),
             ),
             const SizedBox(height: 12),
             SectionCard(

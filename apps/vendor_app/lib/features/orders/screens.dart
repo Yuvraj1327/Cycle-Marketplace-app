@@ -22,7 +22,7 @@ class OrderCard extends StatelessWidget {
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(12),
       side: BorderSide(
-        color: o.isNew ? AppColors.warning : AppColors.line,
+        color: o.isNew ? AppColors.warning : context.palette.line,
         width: o.isNew ? 1.5 : 1,
       ),
     ),
@@ -48,23 +48,23 @@ class OrderCard extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               'Order ${o.orderNumber} · ${dateTime(o.placedAt)}',
-              style: const TextStyle(color: AppColors.muted, fontSize: 12),
+              style: TextStyle(color: context.palette.muted, fontSize: 12),
             ),
             const SizedBox(height: 10),
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.shopping_bag_outlined,
                   size: 16,
-                  color: AppColors.muted,
+                  color: context.palette.muted,
                 ),
                 const SizedBox(width: 4),
                 Text('${o.itemCount} item${o.itemCount == 1 ? '' : 's'}'),
                 const SizedBox(width: 12),
-                const Icon(
+                Icon(
                   Icons.payments_outlined,
                   size: 16,
-                  color: AppColors.muted,
+                  color: context.palette.muted,
                 ),
                 const SizedBox(width: 4),
                 Text(
@@ -306,7 +306,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                 ),
                 Text(
                   'Parent order ${o.orderNumber} · placed ${dateTime(o.placedAt)}',
-                  style: const TextStyle(color: AppColors.muted),
+                  style: TextStyle(color: context.palette.muted),
                 ),
                 if (o.status == 'rejected')
                   StatusBanner(
@@ -348,8 +348,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                                       [i.brand, i.model, i.condition]
                                           .where((e) => (e ?? '').isNotEmpty)
                                           .join(' · '),
-                                      style: const TextStyle(
-                                        color: AppColors.muted,
+                                      style: TextStyle(
+                                        color: context.palette.muted,
                                         fontSize: 12,
                                       ),
                                     ),
@@ -410,9 +410,12 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                             : 'Online',
                       ),
                       InfoRow('Status', humanize(o.paymentStatus), bold: true),
-                      const Text(
+                      Text(
                         'Payment status is set by the platform from verified payment records. You cannot change it.',
-                        style: TextStyle(color: AppColors.muted, fontSize: 12),
+                        style: TextStyle(
+                          color: context.palette.muted,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -431,18 +434,18 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                       const Divider(height: 16),
                       AmountRow('Net payable to you', d.netPayable, bold: true),
                       if (o.commission == null)
-                        const Text(
+                        Text(
                           'Commission is calculated by the platform when the order is completed.',
                           style: TextStyle(
-                            color: AppColors.muted,
+                            color: context.palette.muted,
                             fontSize: 12,
                           ),
                         ),
                       const SizedBox(height: 4),
                       Text(
                         'Order total charged to customer ${money(o.total)} (includes delivery ${money(d.deliveryCharge)}, discount ${money(d.discount)}); these are settled by the platform.',
-                        style: const TextStyle(
-                          color: AppColors.muted,
+                        style: TextStyle(
+                          color: context.palette.muted,
                           fontSize: 12,
                         ),
                       ),
@@ -470,8 +473,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                                         margin: const EdgeInsets.only(top: 5),
                                         width: 8,
                                         height: 8,
-                                        decoration: const BoxDecoration(
-                                          color: AppColors.primary,
+                                        decoration: BoxDecoration(
+                                          color: context.palette.primary,
                                           shape: BoxShape.circle,
                                         ),
                                       ),
@@ -489,8 +492,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                                             ),
                                             Text(
                                               dateTime(e.at),
-                                              style: const TextStyle(
-                                                color: AppColors.muted,
+                                              style: TextStyle(
+                                                color: context.palette.muted,
                                                 fontSize: 12,
                                               ),
                                             ),

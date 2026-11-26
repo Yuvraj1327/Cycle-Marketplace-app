@@ -8,6 +8,7 @@ import '../../core/auth/auth_controller.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/providers.dart';
 import '../../core/widgets/common.dart';
+import '../../core/widgets/google_button.dart';
 import '../../core/widgets/vendor_widgets.dart';
 
 String? validateEmail(String? v) =>
@@ -59,7 +60,7 @@ class _AuthScaffold extends StatelessWidget {
                 const SizedBox(height: 28),
                 Text(title, style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 4),
-                Text(subtitle, style: const TextStyle(color: AppColors.muted)),
+                Text(subtitle, style: TextStyle(color: context.palette.muted)),
                 const SizedBox(height: 22),
                 ...children,
               ],
@@ -212,6 +213,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  /// Google signs in an existing account. The business role/approval gate is the same `/auth/me` check as a password sign-in.
+  Future<void> _google() async {
+    if (_busy) return;
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await ref.read(authControllerProvider.notifier).signInWithGoogle();
+    } on AuthCancelled {
+      // the user dismissed the Google chooser: not an error
+    } on AuthFailure catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (e) {
+      if (mounted) setState(() => _error = errorText(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final notice = ref.watch(authControllerProvider).message;
@@ -267,6 +289,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
         AppButton(label: 'Sign in', busy: _busy, onPressed: _submit),
+        if (AppConfig.googleSignInSupported) ...[
+          const OrDivider(),
+          GoogleSignInButton(onPressed: _busy ? null : _google),
+        ],
         const SizedBox(height: 8),
         Wrap(
           alignment: WrapAlignment.center,

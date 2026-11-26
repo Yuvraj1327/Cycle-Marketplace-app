@@ -48,3 +48,6 @@ app.*.map.json
 .env
 .env.*
 !.env.example
+
+# Per-developer Google sign-in iOS URL scheme
+ios/Flutter/Google.xcconfig

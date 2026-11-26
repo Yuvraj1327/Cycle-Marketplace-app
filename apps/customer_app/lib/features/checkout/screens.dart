@@ -345,9 +345,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Your cart has items from several sellers. Checking out several sellers at once is not enabled yet, so you order from one seller at a time. The other items stay in your cart.',
-                        style: TextStyle(color: AppColors.muted, fontSize: 13),
+                        style: TextStyle(
+                          color: context.palette.muted,
+                          fontSize: 13,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       RadioGroup<String>(
@@ -395,9 +398,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     ? Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Add a delivery address to continue.',
-                            style: TextStyle(color: AppColors.muted),
+                            style: TextStyle(color: context.palette.muted),
                           ),
                           const SizedBox(height: 8),
                           OutlinedButton.icon(
@@ -538,9 +541,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           top: false,
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
-              border: Border(top: BorderSide(color: AppColors.line)),
+            decoration: BoxDecoration(
+              color: context.palette.surface,
+              border: Border(top: BorderSide(color: context.palette.line)),
             ),
             child: Row(
               children: [
@@ -548,9 +551,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
+                    Text(
                       'Total',
-                      style: TextStyle(color: AppColors.muted, fontSize: 12),
+                      style: TextStyle(
+                        color: context.palette.muted,
+                        fontSize: 12,
+                      ),
                     ),
                     _previewing
                         ? const SizedBox(
@@ -611,13 +617,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       enabled: enabled,
       secondary: Icon(
         icon,
-        color: enabled ? AppColors.primary : AppColors.muted,
+        color: enabled ? context.palette.primary : context.palette.muted,
       ),
       title: Text(
         title,
         style: TextStyle(
           fontWeight: FontWeight.w700,
-          color: enabled ? null : AppColors.muted,
+          color: enabled ? null : context.palette.muted,
         ),
       ),
       subtitle: Text(subtitle),
@@ -685,9 +691,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         children: [
           AmountRow('Subtotal', cart.subtotal),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Select an address and payment method to see delivery charges and the final total.',
-            style: TextStyle(color: AppColors.muted, fontSize: 12),
+            style: TextStyle(color: context.palette.muted, fontSize: 12),
           ),
         ],
       );
@@ -708,13 +714,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         const Divider(height: 18),
         AmountRow('Total payable', p.total, bold: true),
         if (_method == 'cod')
-          const Align(
+          Align(
             alignment: Alignment.centerLeft,
             child: Padding(
               padding: EdgeInsets.only(top: 4),
               child: Text(
                 'You will pay this amount in cash on delivery.',
-                style: TextStyle(color: AppColors.muted, fontSize: 12),
+                style: TextStyle(color: context.palette.muted, fontSize: 12),
               ),
             ),
           ),
@@ -815,8 +821,8 @@ class OrderConfirmationScreen extends ConsumerWidget {
                 Text(
                   'Order ${s.number}',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppColors.muted,
+                  style: TextStyle(
+                    color: context.palette.muted,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -861,14 +867,14 @@ class OrderConfirmationScreen extends ConsumerWidget {
                           ],
                         ),
                         if (!online)
-                          const Align(
+                          Align(
                             alignment: Alignment.centerLeft,
                             child: Padding(
                               padding: EdgeInsets.only(top: 6),
                               child: Text(
                                 'Please keep the exact amount ready. Cash is collected on delivery.',
                                 style: TextStyle(
-                                  color: AppColors.muted,
+                                  color: context.palette.muted,
                                   fontSize: 12,
                                 ),
                               ),
@@ -895,7 +901,7 @@ class OrderConfirmationScreen extends ConsumerWidget {
                 const SizedBox(height: 10),
                 Text(
                   'Deliver to: ${o.addressText}',
-                  style: const TextStyle(color: AppColors.muted),
+                  style: TextStyle(color: context.palette.muted),
                 ),
                 if (unpaid) ...[
                   const SizedBox(height: 14),
@@ -996,7 +1002,7 @@ class _PayNowCardState extends ConsumerState<PayNowCard> {
             widget.dueAt != null
                 ? 'Pay before ${dateTime(widget.dueAt)} or the order will be cancelled.'
                 : 'Complete your payment to confirm this order.',
-            style: const TextStyle(color: AppColors.muted),
+            style: TextStyle(color: context.palette.muted),
           ),
           if (_message != null)
             Padding(

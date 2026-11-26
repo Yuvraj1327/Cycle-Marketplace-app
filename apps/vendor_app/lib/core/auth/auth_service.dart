@@ -9,6 +9,20 @@ class AuthFailure implements Exception {
   String toString() => message;
 }
 
+/// The user dismissed the Google account chooser. Not an error: screens swallow it silently.
+class AuthCancelled implements Exception {
+  const AuthCancelled();
+  @override
+  String toString() => 'Sign-in cancelled';
+}
+
+class GoogleSignInResult {
+  const GoogleSignInResult({this.displayName});
+
+  /// The name on the Google account, used only to fill an EMPTY profile name after sign-in.
+  final String? displayName;
+}
+
 class SignUpResult {
   const SignUpResult({required this.signedIn});
 
@@ -41,6 +55,19 @@ abstract class AuthService {
     String? phone,
   });
   Future<void> sendPasswordReset(String email);
+
+  /// Native Google sign-in (Android/iOS): Google issues an ID token, Supabase verifies it and creates or signs in the matching auth user.
+  /// This only authenticates: the role and status still come from the backend (`/auth/me`) exactly as for a password sign-in.
+  /// Throws [AuthCancelled] when the user dismisses the chooser and [AuthFailure] (user-ready message) for everything else.
+  Future<GoogleSignInResult> signInWithGoogle();
+
+  /// Changes the password of the signed-in account. The current password is verified first (a fresh sign-in), so a stolen unlocked phone
+  /// cannot silently take the account over. Throws [AuthFailure] with a user-ready message.
+  Future<void> changePassword({
+    required String email,
+    required String currentPassword,
+    required String newPassword,
+  });
   Future<void> signOut();
 }
 

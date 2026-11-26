@@ -179,6 +179,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       full('/business', (_) => const BusinessProfileScreen()),
       full('/business/edit', (_) => const BusinessFormScreen(editing: true)),
       full('/settings', (_) => const SettingsScreen()),
+      full('/settings/profile', (_) => const EditProfileScreen()),
+      full('/settings/password', (_) => const ChangePasswordScreen()),
     ],
     errorBuilder: (context, state) => Scaffold(
       appBar: AppBar(title: const Text('Not found')),

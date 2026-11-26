@@ -129,8 +129,8 @@ class _ServicesListScreenState extends ConsumerState<ServicesListScreen> {
                         ),
                         Text(
                           s.categoryName ?? '',
-                          style: const TextStyle(
-                            color: AppColors.muted,
+                          style: TextStyle(
+                            color: context.palette.muted,
                             fontSize: 12,
                           ),
                         ),
@@ -157,14 +157,14 @@ class _ServicesListScreenState extends ConsumerState<ServicesListScreen> {
                             if (s.durationMinutes != null)
                               Text(
                                 '~${s.durationMinutes! >= 60 ? '${s.durationMinutes! ~/ 60}h${s.durationMinutes! % 60 == 0 ? '' : ' ${s.durationMinutes! % 60}m'}' : '${s.durationMinutes}m'}',
-                                style: const TextStyle(color: AppColors.muted),
+                                style: TextStyle(color: context.palette.muted),
                               ),
                             const Spacer(),
-                            const Text(
+                            Text(
                               'Bookable',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.muted,
+                                color: context.palette.muted,
                               ),
                             ),
                             Switch(
@@ -409,9 +409,9 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
             ),
             const SizedBox(height: 14),
             Text('Availability', style: Theme.of(context).textTheme.titleSmall),
-            const Text(
+            Text(
               'Bookings are only offered inside your business opening hours. Narrow it down here if this service is not offered every day.',
-              style: TextStyle(color: AppColors.muted, fontSize: 12),
+              style: TextStyle(color: context.palette.muted, fontSize: 12),
             ),
             const SizedBox(height: 6),
             Wrap(
@@ -430,7 +430,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
               _days.isEmpty
                   ? 'Offered on every open day'
                   : 'Offered only on the selected days',
-              style: const TextStyle(color: AppColors.muted, fontSize: 12),
+              style: TextStyle(color: context.palette.muted, fontSize: 12),
             ),
             const SizedBox(height: 10),
             Row(

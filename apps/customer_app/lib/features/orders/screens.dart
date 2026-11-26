@@ -115,7 +115,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                         const SizedBox(height: 4),
                         Text(
                           '${dateShort(o.createdAt)} · ${o.itemCount} item${o.itemCount == 1 ? '' : 's'}',
-                          style: const TextStyle(color: AppColors.muted),
+                          style: TextStyle(color: context.palette.muted),
                         ),
                         const SizedBox(height: 8),
                         Row(
@@ -126,8 +126,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                               o.paymentMethod == 'cod'
                                   ? 'Cash on delivery · '
                                   : 'Online · ',
-                              style: const TextStyle(
-                                color: AppColors.muted,
+                              style: TextStyle(
+                                color: context.palette.muted,
                                 fontSize: 12,
                               ),
                             ),
@@ -236,7 +236,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                 ),
                 Text(
                   'Placed on ${dateTime(s.createdAt)}',
-                  style: const TextStyle(color: AppColors.muted),
+                  style: TextStyle(color: context.palette.muted),
                 ),
                 if (s.status == 'cancelled')
                   _Cancelled(order: o, payments: payments.value ?? const []),
@@ -273,10 +273,10 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                               padding: const EdgeInsets.only(bottom: 8),
                               child: Row(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.storefront_outlined,
                                     size: 18,
-                                    color: AppColors.primary,
+                                    color: context.palette.primary,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
@@ -317,8 +317,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                                         ),
                                         Text(
                                           '${money(i.unitPrice)} × ${i.quantity}',
-                                          style: const TextStyle(
-                                            color: AppColors.muted,
+                                          style: TextStyle(
+                                            color: context.palette.muted,
                                             fontSize: 12,
                                           ),
                                         ),
@@ -349,9 +349,9 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                     padding: const EdgeInsets.all(12),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.place_outlined,
-                          color: AppColors.primary,
+                          color: context.palette.primary,
                         ),
                         const SizedBox(width: 10),
                         Expanded(child: Text(o.addressText)),
@@ -410,8 +410,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                                         : p.refundedAmount > 0
                                         ? 'Refunded so far: ${money(p.refundedAmount)}'
                                         : 'Cash to pay on delivery: ${money(p.amountDue)}',
-                                    style: const TextStyle(
-                                      color: AppColors.muted,
+                                    style: TextStyle(
+                                      color: context.palette.muted,
                                       fontSize: 12,
                                     ),
                                   ),
@@ -438,11 +438,14 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                 if (!o.canCancel &&
                     s.status != 'cancelled' &&
                     s.status != 'completed')
-                  const Center(
+                  Center(
                     child: Text(
                       'This order can no longer be cancelled because preparation has started.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.muted, fontSize: 12),
+                      style: TextStyle(
+                        color: context.palette.muted,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 const SizedBox(height: 8),
@@ -507,7 +510,7 @@ class _Cancelled extends StatelessWidget {
           if (order.cancelledAt != null)
             Text(
               dateTime(order.cancelledAt),
-              style: const TextStyle(color: AppColors.muted, fontSize: 12),
+              style: TextStyle(color: context.palette.muted, fontSize: 12),
             ),
           if (refund != null)
             Padding(
@@ -574,8 +577,8 @@ class _VendorProgress extends StatelessWidget {
                             height: 6,
                             decoration: BoxDecoration(
                               color: i <= idx
-                                  ? AppColors.primary
-                                  : AppColors.line,
+                                  ? context.palette.primary
+                                  : context.palette.line,
                               borderRadius: BorderRadius.circular(3),
                             ),
                           ),
@@ -585,7 +588,9 @@ class _VendorProgress extends StatelessWidget {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 9,
-                              color: i <= idx ? AppColors.ink : AppColors.muted,
+                              color: i <= idx
+                                  ? context.palette.ink
+                                  : context.palette.muted,
                               fontWeight: i == idx
                                   ? FontWeight.w800
                                   : FontWeight.w500,
@@ -627,8 +632,8 @@ class _Timeline extends StatelessWidget {
                     margin: const EdgeInsets.only(top: 5),
                     width: 8,
                     height: 8,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primary,
+                    decoration: BoxDecoration(
+                      color: context.palette.primary,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -643,16 +648,16 @@ class _Timeline extends StatelessWidget {
                         ),
                         Text(
                           dateTime(e.at),
-                          style: const TextStyle(
-                            color: AppColors.muted,
+                          style: TextStyle(
+                            color: context.palette.muted,
                             fontSize: 12,
                           ),
                         ),
                         if ((e.note ?? '').isNotEmpty)
                           Text(
                             e.note!,
-                            style: const TextStyle(
-                              color: AppColors.muted,
+                            style: TextStyle(
+                              color: context.palette.muted,
                               fontSize: 12,
                             ),
                           ),

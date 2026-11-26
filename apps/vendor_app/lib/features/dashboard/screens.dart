@@ -312,9 +312,9 @@ class _RecentOrders extends ConsumerWidget {
             ],
           ),
           if (orders.isEmpty)
-            const Text(
+            Text(
               'No orders yet.',
-              style: TextStyle(color: AppColors.muted),
+              style: TextStyle(color: context.palette.muted),
             )
           else
             for (final o in orders)
@@ -354,9 +354,9 @@ class _RecentBookings extends ConsumerWidget {
             ],
           ),
           if (items.isEmpty)
-            const Text(
+            Text(
               'No service bookings yet.',
-              style: TextStyle(color: AppColors.muted),
+              style: TextStyle(color: context.palette.muted),
             )
           else
             for (final b in items)

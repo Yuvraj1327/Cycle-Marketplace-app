@@ -2,6 +2,7 @@ import 'package:customer_app/app/app.dart';
 import 'package:customer_app/core/api/api_client.dart';
 import 'package:customer_app/core/providers.dart';
 import 'package:customer_app/features/checkout/models.dart';
+import 'package:customer_app/features/onboarding/onboarding_store.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,6 +34,7 @@ Future<({FakeAuthService auth, StubAdapter http})> pumpApp(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        onboardingStoreProvider.overrideWithValue(FakeOnboardingStore()),
         authServiceProvider.overrideWithValue(a),
         apiClientProvider.overrideWith(
           (ref) => ApiClient(

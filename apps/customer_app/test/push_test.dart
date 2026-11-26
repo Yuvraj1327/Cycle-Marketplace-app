@@ -8,6 +8,7 @@ import 'package:customer_app/core/providers.dart';
 import 'package:customer_app/core/push/notification_route.dart';
 import 'package:customer_app/core/push/push_controller.dart';
 import 'package:customer_app/core/push/push_service.dart';
+import 'package:customer_app/features/onboarding/onboarding_store.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart' show SnackBarAction;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -109,6 +110,7 @@ Future<Harness> pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        onboardingStoreProvider.overrideWithValue(FakeOnboardingStore()),
         authServiceProvider.overrideWithValue(a),
         pushServiceProvider.overrideWithValue(p),
         apiClientProvider.overrideWith(

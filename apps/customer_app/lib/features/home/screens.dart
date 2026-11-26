@@ -76,10 +76,10 @@ class HomeScreen extends ConsumerWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.place_outlined,
                     size: 15,
-                    color: AppColors.muted,
+                    color: context.palette.muted,
                   ),
                   const SizedBox(width: 3),
                   Flexible(
@@ -88,16 +88,16 @@ class HomeScreen extends ConsumerWidget {
                           ? 'Add a delivery address'
                           : '${address.city} ${address.postalCode}',
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.muted,
+                        color: context.palette.muted,
                       ),
                     ),
                   ),
-                  const Icon(
+                  Icon(
                     Icons.keyboard_arrow_down,
                     size: 16,
-                    color: AppColors.muted,
+                    color: context.palette.muted,
                   ),
                 ],
               ),
@@ -143,17 +143,17 @@ class _SearchBar extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.palette.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.line),
+          border: Border.all(color: context.palette.line),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(Icons.search, color: AppColors.muted),
+            Icon(Icons.search, color: context.palette.muted),
             SizedBox(width: 10),
             Text(
               'Search cycles, parts, accessories',
-              style: TextStyle(color: AppColors.muted),
+              style: TextStyle(color: context.palette.muted),
             ),
           ],
         ),
@@ -270,8 +270,8 @@ class _BannersState extends ConsumerState<_Banners> {
                         margin: const EdgeInsets.symmetric(horizontal: 2),
                         decoration: BoxDecoration(
                           color: i == _index
-                              ? AppColors.primary
-                              : AppColors.line,
+                              ? context.palette.primary
+                              : context.palette.line,
                           borderRadius: BorderRadius.circular(3),
                         ),
                       ),
@@ -308,11 +308,11 @@ class _CategoryRow extends ConsumerWidget {
             ),
           ),
           data: (list) => list.isEmpty
-              ? const Padding(
+              ? Padding(
                   padding: EdgeInsets.all(AppSpacing.lg),
                   child: Text(
                     'Categories will appear here once they are set up.',
-                    style: TextStyle(color: AppColors.muted),
+                    style: TextStyle(color: context.palette.muted),
                   ),
                 )
               : SizedBox(
@@ -339,7 +339,7 @@ class _CategoryRow extends ConsumerWidget {
                                 width: 64,
                                 height: 64,
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(
+                                  color: context.palette.primary.withValues(
                                     alpha: .1,
                                   ),
                                   borderRadius: BorderRadius.circular(18),
@@ -352,7 +352,7 @@ class _CategoryRow extends ConsumerWidget {
                                       )
                                     : Icon(
                                         kindIcon(c.kind),
-                                        color: AppColors.primary,
+                                        color: context.palette.primary,
                                         size: 30,
                                       ),
                               ),
@@ -458,7 +458,7 @@ class _ServicesSection extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
           child: Card(
-            color: AppColors.primary,
+            color: context.palette.primary,
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: () => context.go('/services'),

@@ -149,9 +149,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           top: false,
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
-              border: Border(top: BorderSide(color: AppColors.line)),
+            decoration: BoxDecoration(
+              color: context.palette.surface,
+              border: Border(top: BorderSide(color: context.palette.line)),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -161,11 +161,14 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   cart.subtotal,
                   bold: true,
                 ),
-                const Align(
+                Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Delivery charges and discounts are calculated at checkout.',
-                    style: TextStyle(color: AppColors.muted, fontSize: 12),
+                    style: TextStyle(
+                      color: context.palette.muted,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -264,8 +267,8 @@ class _CartTile extends StatelessWidget {
                   if (p?.vendor != null)
                     Text(
                       'Sold by ${p!.vendor!.businessName}',
-                      style: const TextStyle(
-                        color: AppColors.muted,
+                      style: TextStyle(
+                        color: context.palette.muted,
                         fontSize: 12,
                       ),
                     ),

@@ -35,7 +35,7 @@ class BookingCard extends StatelessWidget {
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(12),
       side: BorderSide(
-        color: b.isNew ? AppColors.warning : AppColors.line,
+        color: b.isNew ? AppColors.warning : context.palette.line,
         width: b.isNew ? 1.5 : 1,
       ),
     ),
@@ -60,17 +60,17 @@ class BookingCard extends StatelessWidget {
             ),
             Text(
               '${b.number} · ${b.customer?.name ?? 'Customer'}',
-              style: const TextStyle(color: AppColors.muted, fontSize: 12),
+              style: TextStyle(color: context.palette.muted, fontSize: 12),
             ),
             const SizedBox(height: 6),
             Text(b.issue, maxLines: 2, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.event_outlined,
                   size: 16,
-                  color: AppColors.muted,
+                  color: context.palette.muted,
                 ),
                 const SizedBox(width: 4),
                 Expanded(
@@ -88,19 +88,22 @@ class BookingCard extends StatelessWidget {
               ],
             ),
             if (b.needsPickup)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.only(top: 6),
                 child: Row(
                   children: [
                     Icon(
                       Icons.local_shipping_outlined,
                       size: 16,
-                      color: AppColors.primary,
+                      color: context.palette.primary,
                     ),
                     SizedBox(width: 4),
                     Text(
                       'Doorstep pickup & drop-off',
-                      style: TextStyle(fontSize: 12, color: AppColors.primary),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.palette.primary,
+                      ),
                     ),
                   ],
                 ),
@@ -401,7 +404,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                     StatusChip(b.status, label: bookingStatusLabel(b.status)),
                   ],
                 ),
-                Text(b.number, style: const TextStyle(color: AppColors.muted)),
+                Text(b.number, style: TextStyle(color: context.palette.muted)),
                 if (b.status == 'rejected')
                   StatusBanner(
                     'Rejected${(d.rejectionReason ?? '').isNotEmpty ? ': ${d.rejectionReason}' : ''}',
@@ -473,9 +476,12 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                       if ('${d.cycle['details'] ?? ''}'.isNotEmpty)
                         InfoRow('Details', '${d.cycle['details']}'),
                       const SizedBox(height: 4),
-                      const Text(
+                      Text(
                         'Problem described',
-                        style: TextStyle(color: AppColors.muted, fontSize: 13),
+                        style: TextStyle(
+                          color: context.palette.muted,
+                          fontSize: 13,
+                        ),
                       ),
                       Text(b.issue),
                       if (d.images.isNotEmpty) ...[
@@ -514,12 +520,12 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                           ),
                         ),
                       ] else
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.only(top: 8),
                           child: Text(
                             'No photos attached.',
                             style: TextStyle(
-                              color: AppColors.muted,
+                              color: context.palette.muted,
                               fontSize: 12,
                             ),
                           ),
@@ -592,9 +598,12 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                         ),
                       ],
                       const SizedBox(height: 6),
-                      const Text(
+                      Text(
                         'The original estimate is never overwritten; extra work is recorded as separate charges. Customer approval of extra charges is not available in the platform yet, so recorded charges are NOT confirmed by the customer. Nothing is collected through the app; settle payment with the customer directly.',
-                        style: TextStyle(color: AppColors.muted, fontSize: 12),
+                        style: TextStyle(
+                          color: context.palette.muted,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -612,9 +621,9 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                     label: const Text('Add note'),
                   ),
                   child: d.notes.isEmpty && (d.completionNotes ?? '').isEmpty
-                      ? const Text(
+                      ? Text(
                           'No notes yet.',
-                          style: TextStyle(color: AppColors.muted),
+                          style: TextStyle(color: context.palette.muted),
                         )
                       : Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -670,8 +679,8 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                                           margin: const EdgeInsets.only(top: 5),
                                           width: 8,
                                           height: 8,
-                                          decoration: const BoxDecoration(
-                                            color: AppColors.primary,
+                                          decoration: BoxDecoration(
+                                            color: context.palette.primary,
                                             shape: BoxShape.circle,
                                           ),
                                         ),
@@ -689,8 +698,8 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                                               ),
                                               Text(
                                                 dateTime(e.at),
-                                                style: const TextStyle(
-                                                  color: AppColors.muted,
+                                                style: TextStyle(
+                                                  color: context.palette.muted,
                                                   fontSize: 12,
                                                 ),
                                               ),
@@ -853,7 +862,7 @@ class _ChargeSheetState extends State<_ChargeSheet> {
             const SizedBox(height: 6),
             Text(
               'Original estimate ${money(widget.estimated)} · current price ${money(widget.current)}',
-              style: const TextStyle(color: AppColors.muted),
+              style: TextStyle(color: context.palette.muted),
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -942,13 +951,17 @@ class _RepairProgress extends StatelessWidget {
                           ? Icons.check_circle
                           : Icons.radio_button_unchecked,
                       size: 22,
-                      color: i <= idx ? AppColors.primary : AppColors.line,
+                      color: i <= idx
+                          ? context.palette.primary
+                          : context.palette.line,
                     ),
                     if (i < steps.length - 1)
                       Container(
                         width: 2,
                         height: 22,
-                        color: i < idx ? AppColors.primary : AppColors.line,
+                        color: i < idx
+                            ? context.palette.primary
+                            : context.palette.line,
                       ),
                   ],
                 ),
@@ -959,18 +972,20 @@ class _RepairProgress extends StatelessWidget {
                     steps[i].$2,
                     style: TextStyle(
                       fontWeight: i == idx ? FontWeight.w800 : FontWeight.w500,
-                      color: i <= idx ? AppColors.ink : AppColors.muted,
+                      color: i <= idx
+                          ? context.palette.ink
+                          : context.palette.muted,
                     ),
                   ),
                 ),
               ],
             ),
           if (b.needsPickup)
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(top: 8),
               child: Text(
                 'Marking “Picked up” records the pickup as done; “Completed” records the return delivery as done. Pickup/drop-off scheduling is coordinated separately.',
-                style: TextStyle(color: AppColors.muted, fontSize: 12),
+                style: TextStyle(color: context.palette.muted, fontSize: 12),
               ),
             ),
         ],
@@ -1002,7 +1017,7 @@ class _LogisticsSummary extends ConsumerWidget {
         ),
         Text(
           Logistics.addressText(l.pickupAddress),
-          style: const TextStyle(color: AppColors.muted, fontSize: 12),
+          style: TextStyle(color: context.palette.muted, fontSize: 12),
         ),
         const SizedBox(height: 8),
         Row(
@@ -1017,7 +1032,7 @@ class _LogisticsSummary extends ConsumerWidget {
         ),
         Text(
           Logistics.addressText(l.dropoffAddress),
-          style: const TextStyle(color: AppColors.muted, fontSize: 12),
+          style: TextStyle(color: context.palette.muted, fontSize: 12),
         ),
         if ((l.instructions ?? '').isNotEmpty)
           Padding(

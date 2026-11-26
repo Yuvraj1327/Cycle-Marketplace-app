@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Build-time configuration (vendor app) (`--dart-define=NAME=value`, falling back to the bundled `.env` file when a define is not given). Nothing secret lives here: the Supabase ANON key is public by design;
@@ -60,6 +61,35 @@ class AppConfig {
       firebaseAppId.isNotEmpty &&
       firebaseMessagingSenderId.isNotEmpty &&
       firebaseProjectId.isNotEmpty;
+
+  /// Google sign-in OAuth client IDs (Google Cloud Console -> APIs & Services -> Credentials). Public identifiers, not secrets.
+  /// The WEB client ID is the one that matters at runtime: it is the `serverClientId` Google signs the ID token for, and the same
+  /// ID Supabase verifies it against. The iOS ID is the native iOS client. The Android ID is never read by the plugin (Android
+  /// matches package name + SHA-1 on Google's side) but must be listed in Supabase's "Authorized Client IDs".
+  static String get googleWebClientId => _value(
+    const String.fromEnvironment('GOOGLE_WEB_CLIENT_ID'),
+    'GOOGLE_WEB_CLIENT_ID',
+  );
+  static String get googleIosClientId => _value(
+    const String.fromEnvironment('GOOGLE_IOS_CLIENT_ID'),
+    'GOOGLE_IOS_CLIENT_ID',
+  );
+  static String get googleAndroidClientId => _value(
+    const String.fromEnvironment('GOOGLE_ANDROID_CLIENT_ID'),
+    'GOOGLE_ANDROID_CLIENT_ID',
+  );
+
+  /// Native Google sign-in is offered on Android and iOS only.
+  static bool get googleSignInSupported =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+
+  /// What this platform needs before Google sign-in can work: the web client ID everywhere, plus the iOS client ID on iOS.
+  static bool get googleConfigured =>
+      googleWebClientId.isNotEmpty &&
+      (defaultTargetPlatform != TargetPlatform.iOS ||
+          googleIosClientId.isNotEmpty);
 
   static bool get supabaseConfigured =>
       supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;

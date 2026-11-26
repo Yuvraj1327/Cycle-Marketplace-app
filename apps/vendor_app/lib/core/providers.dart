@@ -41,6 +41,9 @@ final currentUserIdProvider = Provider<String?>(
 final authRepositoryProvider = Provider(
   (ref) => AuthRepository(ref.watch(apiClientProvider)),
 );
+final profileRepositoryProvider = Provider(
+  (ref) => ProfileRepository(ref.watch(apiClientProvider)),
+);
 final vendorProfileRepositoryProvider = Provider(
   (ref) => VendorProfileRepository(ref.watch(apiClientProvider)),
 );

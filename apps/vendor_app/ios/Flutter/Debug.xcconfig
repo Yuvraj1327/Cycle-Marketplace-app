@@ -1,1 +1,5 @@
 #include "Generated.xcconfig"
+
+// Google sign-in: the placeholder keeps the app launching until ios/Flutter/Google.xcconfig (git-ignored) overrides it.
+GOOGLE_IOS_REVERSED_CLIENT_ID = com.googleusercontent.apps.NOT_CONFIGURED
+#include? "Google.xcconfig"

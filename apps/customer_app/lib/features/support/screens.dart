@@ -77,9 +77,9 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                       children: [
                         if (AppConfig.supportPhone.isNotEmpty)
                           ListTile(
-                            leading: const Icon(
+                            leading: Icon(
                               Icons.phone_outlined,
-                              color: AppColors.primary,
+                              color: context.palette.primary,
                             ),
                             title: Text(AppConfig.supportPhone),
                             onTap: () => _launch(
@@ -88,9 +88,9 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                           ),
                         if (AppConfig.supportEmail.isNotEmpty)
                           ListTile(
-                            leading: const Icon(
+                            leading: Icon(
                               Icons.mail_outline,
-                              color: AppColors.primary,
+                              color: context.palette.primary,
                             ),
                             title: Text(AppConfig.supportEmail),
                             onTap: () => _launch(
@@ -102,11 +102,11 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                           ),
                       ],
                     )
-                  : const Padding(
+                  : Padding(
                       padding: EdgeInsets.all(14),
                       child: Text(
                         'Support phone and e-mail have not been configured for this build yet. You can still raise a request below and our team will respond.',
-                        style: TextStyle(color: AppColors.muted),
+                        style: TextStyle(color: context.palette.muted),
                       ),
                     ),
             ),
@@ -147,12 +147,12 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
             else if (_paged.error != null && _paged.items.isEmpty)
               ErrorView(_paged.error!, onRetry: _paged.refresh)
             else if (_paged.items.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.all(16),
                 child: Center(
                   child: Text(
                     'You have not raised any requests.',
-                    style: TextStyle(color: AppColors.muted),
+                    style: TextStyle(color: context.palette.muted),
                   ),
                 ),
               )
@@ -191,7 +191,7 @@ class _Help extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(q, style: const TextStyle(fontWeight: FontWeight.w700)),
-        Text(a, style: const TextStyle(color: AppColors.muted)),
+        Text(a, style: TextStyle(color: context.palette.muted)),
       ],
     ),
   );
@@ -254,7 +254,7 @@ class _NewTicketScreenState extends ConsumerState<NewTicketScreen> {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: .07),
+                color: context.palette.primary.withValues(alpha: .07),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -338,7 +338,7 @@ class TicketDetailScreen extends ConsumerWidget {
           ),
           Text(
             '${t.number} · ${humanize(t.type)} · ${dateTime(t.createdAt)}',
-            style: const TextStyle(color: AppColors.muted),
+            style: TextStyle(color: context.palette.muted),
           ),
           const SizedBox(height: 14),
           Card(
@@ -369,11 +369,11 @@ class TicketDetailScreen extends ConsumerWidget {
               ),
             ),
           ] else
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(top: 12),
               child: Text(
                 'Our team will review your request and update the status here.',
-                style: TextStyle(color: AppColors.muted),
+                style: TextStyle(color: context.palette.muted),
               ),
             ),
         ],

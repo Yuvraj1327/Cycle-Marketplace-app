@@ -159,8 +159,8 @@ class ServiceDetailScreen extends ConsumerWidget {
                     if (s.categoryName != null)
                       Text(
                         s.categoryName!,
-                        style: const TextStyle(
-                          color: AppColors.primary,
+                        style: TextStyle(
+                          color: context.palette.primary,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -174,9 +174,12 @@ class ServiceDetailScreen extends ConsumerWidget {
                       s.price,
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
-                    const Text(
+                    Text(
                       'Estimated price — the provider confirms any additional work after inspecting your cycle.',
-                      style: TextStyle(color: AppColors.muted, fontSize: 12),
+                      style: TextStyle(
+                        color: context.palette.muted,
+                        fontSize: 12,
+                      ),
                     ),
                     const SizedBox(height: 14),
                     Wrap(
@@ -226,11 +229,11 @@ class ServiceDetailScreen extends ConsumerWidget {
                             children: [
                               Row(
                                 children: [
-                                  const CircleAvatar(
-                                    backgroundColor: AppColors.line,
+                                  CircleAvatar(
+                                    backgroundColor: context.palette.line,
                                     child: Icon(
                                       Icons.storefront_outlined,
-                                      color: AppColors.primary,
+                                      color: context.palette.primary,
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -248,8 +251,8 @@ class ServiceDetailScreen extends ConsumerWidget {
                                         if (p.location.isNotEmpty)
                                           Text(
                                             p.location,
-                                            style: const TextStyle(
-                                              color: AppColors.muted,
+                                            style: TextStyle(
+                                              color: context.palette.muted,
                                             ),
                                           ),
                                       ],
@@ -285,9 +288,11 @@ class ServiceDetailScreen extends ConsumerWidget {
                 top: false,
                 child: Container(
                   padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: const BoxDecoration(
-                    color: AppColors.surface,
-                    border: Border(top: BorderSide(color: AppColors.line)),
+                  decoration: BoxDecoration(
+                    color: context.palette.surface,
+                    border: Border(
+                      top: BorderSide(color: context.palette.line),
+                    ),
                   ),
                   child: FilledButton(
                     onPressed: s.isAvailable

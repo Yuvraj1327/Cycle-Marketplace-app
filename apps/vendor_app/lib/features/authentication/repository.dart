@@ -15,3 +15,24 @@ class AuthRepository {
     }
   }
 }
+
+/// The signed-in user's own account row. Only name, phone and picture are editable; role, status and e-mail are rejected by the backend.
+class ProfileRepository {
+  ProfileRepository(this._api);
+  final ApiClient _api;
+
+  Future<void> update({
+    String? fullName,
+    String? phone,
+    String? avatarPath,
+  }) async {
+    await _api.put(
+      '/profiles/me',
+      body: {
+        'full_name': ?fullName,
+        'phone': ?phone,
+        'avatar_path': ?avatarPath,
+      },
+    );
+  }
+}

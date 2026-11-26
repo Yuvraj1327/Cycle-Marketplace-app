@@ -306,7 +306,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                     child: Center(
                       child: Text(
                         '${c.total} product${c.total == 1 ? '' : 's'}',
-                        style: const TextStyle(color: AppColors.muted),
+                        style: TextStyle(color: context.palette.muted),
                       ),
                     ),
                   ),
@@ -327,7 +327,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
               ListTile(
                 title: Text(s.label),
                 trailing: s == _query.sort
-                    ? const Icon(Icons.check, color: AppColors.primary)
+                    ? Icon(Icons.check, color: context.palette.primary)
                     : null,
                 onTap: () => Navigator.pop(c, s),
               ),
@@ -373,8 +373,8 @@ class _ActiveFilters extends StatelessWidget {
               parts.join('  ·  '),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: AppColors.primary,
+              style: TextStyle(
+                color: context.palette.primary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -703,7 +703,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         color: i == _image
-                                            ? AppColors.primary
+                                            ? context.palette.primary
                                             : Colors.white.withValues(
                                                 alpha: .8,
                                               ),
@@ -730,8 +730,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                               if (d.categoryName != null)
                                 Text(
                                   d.categoryName!,
-                                  style: const TextStyle(
-                                    color: AppColors.muted,
+                                  style: TextStyle(
+                                    color: context.palette.muted,
                                   ),
                                 ),
                             ],
@@ -747,8 +747,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                   .whereType<String>()
                                   .where((s) => s.isNotEmpty)
                                   .join(' · '),
-                              style: const TextStyle(
-                                color: AppColors.muted,
+                              style: TextStyle(
+                                color: context.palette.muted,
                                 fontSize: 15,
                               ),
                             ),
@@ -830,11 +830,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                             const SizedBox(height: 6),
                             Card(
                               child: ListTile(
-                                leading: const CircleAvatar(
-                                  backgroundColor: AppColors.line,
+                                leading: CircleAvatar(
+                                  backgroundColor: context.palette.line,
                                   child: Icon(
                                     Icons.storefront_outlined,
-                                    color: AppColors.primary,
+                                    color: context.palette.primary,
                                   ),
                                 ),
                                 title: Text(
@@ -867,9 +867,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 top: false,
                 child: Container(
                   padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: const BoxDecoration(
-                    color: AppColors.surface,
-                    border: Border(top: BorderSide(color: AppColors.line)),
+                  decoration: BoxDecoration(
+                    color: context.palette.surface,
+                    border: Border(
+                      top: BorderSide(color: context.palette.line),
+                    ),
                   ),
                   child: Row(
                     children: [

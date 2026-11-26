@@ -11,10 +11,13 @@ import '../features/categories/screens.dart';
 import '../features/checkout/screens.dart';
 import '../features/home/screens.dart';
 import '../features/notifications/screens.dart';
+import '../features/onboarding/onboarding_screen.dart';
+import '../features/onboarding/onboarding_store.dart';
 import '../features/orders/screens.dart';
 import '../features/products/screens.dart';
 import '../features/profile/screens.dart';
 import '../features/services/screens.dart';
+import '../features/settings/screens.dart';
 import '../features/support/screens.dart';
 import '../features/wishlist/screens.dart';
 import 'shell.dart';
@@ -25,6 +28,7 @@ final _rootKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 class _AuthRefresh extends ChangeNotifier {
   _AuthRefresh(Ref ref) {
     ref.listen<AuthState>(authControllerProvider, (_, _) => notifyListeners());
+    ref.listen<bool>(onboardingCompletedProvider, (_, _) => notifyListeners());
   }
 }
 
@@ -46,17 +50,24 @@ final routerProvider = Provider<GoRouter>((ref) {
         case AuthStatus.error:
           return loc == '/splash' ? null : '/splash';
         case AuthStatus.signedOut:
+          // First launch on this device: onboarding comes before the auth screens.
+          if (!ref.read(onboardingCompletedProvider)) {
+            return loc == '/onboarding' ? null : '/onboarding';
+          }
           return _publicPaths.contains(loc)
               ? null
               : '/login'; // every private screen requires a signed-in customer
         case AuthStatus.signedIn:
-          return (loc == '/splash' || _publicPaths.contains(loc))
+          return (loc == '/splash' ||
+                  loc == '/onboarding' ||
+                  _publicPaths.contains(loc))
               ? '/home'
               : null;
       }
     },
     routes: [
       GoRoute(path: '/splash', builder: (_, _) => const SplashScreen()),
+      GoRoute(path: '/onboarding', builder: (_, _) => const OnboardingScreen()),
       GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, _) => const RegisterScreen()),
       GoRoute(
@@ -200,6 +211,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootKey,
         path: '/profile/edit',
         builder: (_, _) => const EditProfileScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/settings',
+        builder: (_, _) => const AccountSettingsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/settings/password',
+        builder: (_, _) => const ChangePasswordScreen(),
       ),
       GoRoute(
         parentNavigatorKey: _rootKey,

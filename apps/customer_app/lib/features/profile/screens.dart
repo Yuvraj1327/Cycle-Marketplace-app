@@ -6,6 +6,8 @@ import '../../app/theme.dart';
 import '../../core/auth/auth_controller.dart';
 import '../../core/providers.dart';
 import '../../core/widgets/common.dart';
+import '../settings/avatar.dart';
+import '../settings/screens.dart' show saveAvatarPath;
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -20,36 +22,31 @@ class ProfileScreen extends ConsumerWidget {
       String route, {
       String? subtitle,
     }) => ListTile(
-      leading: Icon(icon, color: AppColors.primary),
+      leading: Icon(icon, color: context.palette.primary),
       title: Text(title),
       subtitle: subtitle == null ? null : Text(subtitle),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => context.push(route),
     );
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(
+        title: const Text('Profile'),
+        actions: [
+          IconButton(
+            tooltip: 'Account settings',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push('/settings'),
+          ),
+        ],
+      ),
       body: ListView(
         children: [
           Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
-            color: AppColors.surface,
+            color: context.palette.surface,
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: AppColors.primary,
-                  child: Text(
-                    ((p?.fullName ?? '?').trim().isEmpty
-                            ? '?'
-                            : p!.fullName.trim()[0])
-                        .toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
+                UserAvatar(name: p?.fullName ?? '', path: p?.avatarPath),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
@@ -64,12 +61,12 @@ class ProfileScreen extends ConsumerWidget {
                       if ((me?.email ?? '').isNotEmpty)
                         Text(
                           me!.email!,
-                          style: const TextStyle(color: AppColors.muted),
+                          style: TextStyle(color: context.palette.muted),
                         ),
                       if ((p?.phone ?? me?.phone ?? '').isNotEmpty)
                         Text(
                           p?.phone ?? me!.phone!,
-                          style: const TextStyle(color: AppColors.muted),
+                          style: TextStyle(color: context.palette.muted),
                         ),
                     ],
                   ),
@@ -84,7 +81,7 @@ class ProfileScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Container(
-            color: AppColors.surface,
+            color: context.palette.surface,
             child: Column(
               children: [
                 tile(Icons.receipt_long_outlined, 'My orders', '/orders'),
@@ -111,9 +108,16 @@ class ProfileScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Container(
-            color: AppColors.surface,
+            color: context.palette.surface,
             child: Column(
               children: [
+                tile(
+                  Icons.settings_outlined,
+                  'Account settings',
+                  '/settings',
+                  subtitle: 'Profile, appearance, password',
+                ),
+                const Divider(height: 1, indent: 56),
                 tile(Icons.support_agent, 'Help & support', '/support'),
                 const Divider(height: 1, indent: 56),
                 ListTile(
@@ -141,12 +145,12 @@ class ProfileScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.all(24),
             child: Center(
               child: Text(
                 'Cycle Marketplace',
-                style: TextStyle(color: AppColors.muted, fontSize: 12),
+                style: TextStyle(color: context.palette.muted, fontSize: 12),
               ),
             ),
           ),
@@ -219,6 +223,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
+            if (me != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+                child: Center(
+                  child: AvatarEditor(
+                    userId: me.id,
+                    name: me.profile.fullName,
+                    path: me.profile.avatarPath,
+                    onUploaded: (path) => saveAvatarPath(ref, path),
+                  ),
+                ),
+              ),
             TextFormField(
               controller: _name,
               textCapitalization: TextCapitalization.words,

@@ -25,13 +25,20 @@ class ProfileRepository {
       Profile.fromJson(asMap(await _api.get('/profiles/me')));
 
   /// Only name, phone and avatar are editable; role/status/email are rejected by the backend.
-  Future<Profile> update({String? fullName, String? phone}) async =>
-      Profile.fromJson(
-        asMap(
-          await _api.put(
-            '/profiles/me',
-            body: {'full_name': ?fullName, 'phone': ?phone},
-          ),
-        ),
-      );
+  Future<Profile> update({
+    String? fullName,
+    String? phone,
+    String? avatarPath,
+  }) async => Profile.fromJson(
+    asMap(
+      await _api.put(
+        '/profiles/me',
+        body: {
+          'full_name': ?fullName,
+          'phone': ?phone,
+          'avatar_path': ?avatarPath,
+        },
+      ),
+    ),
+  );
 }

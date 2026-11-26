@@ -58,8 +58,8 @@ class EarningsScreen extends ConsumerWidget {
                     const SizedBox(height: 4),
                     Text(
                       '${d.completedOrders} completed order${d.completedOrders == 1 ? '' : 's'}. Commission is the amount the platform recorded on each order when it was completed. Other deductions (e.g. processed refunds) appear in settlements below.',
-                      style: const TextStyle(
-                        color: AppColors.muted,
+                      style: TextStyle(
+                        color: context.palette.muted,
                         fontSize: 12,
                       ),
                     ),
@@ -77,9 +77,12 @@ class EarningsScreen extends ConsumerWidget {
                       bold: true,
                     ),
                     InfoRow('Completed jobs', '${d.completedServices}'),
-                    const Text(
+                    Text(
                       'This is the recorded price of finished bookings (estimate + recorded extra charges). Customers pay you directly: no service payment, commission or payout is processed by the platform.',
-                      style: TextStyle(color: AppColors.muted, fontSize: 12),
+                      style: TextStyle(
+                        color: context.palette.muted,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -100,9 +103,12 @@ class EarningsScreen extends ConsumerWidget {
                         status: s,
                       ),
                     const Divider(height: 14),
-                    const Text(
+                    Text(
                       '“Paid out” means the platform recorded a payout it made to you outside the app. Settlements awaiting payment or ready for payout have not been transferred yet. The app never initiates transfers.',
-                      style: TextStyle(color: AppColors.muted, fontSize: 12),
+                      style: TextStyle(
+                        color: context.palette.muted,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -152,7 +158,7 @@ class _SettleRow extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           t == null ? 'none' : '${t!.count} order${t!.count == 1 ? '' : 's'}',
-          style: const TextStyle(color: AppColors.muted, fontSize: 12),
+          style: TextStyle(color: context.palette.muted, fontSize: 12),
         ),
         const Spacer(),
         Text(
@@ -228,9 +234,12 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
                       dash.commissionTotal,
                       bold: true,
                     ),
-                    const Text(
+                    Text(
                       'Rates are set by the platform administrator and may differ per order. This app shows what was recorded; it never calculates or changes commission.',
-                      style: TextStyle(color: AppColors.muted, fontSize: 12),
+                      style: TextStyle(
+                        color: context.palette.muted,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -289,8 +298,8 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
                       ),
                       Text(
                         dateTime(s.createdAt),
-                        style: const TextStyle(
-                          color: AppColors.muted,
+                        style: TextStyle(
+                          color: context.palette.muted,
                           fontSize: 12,
                         ),
                       ),

@@ -10,7 +10,7 @@ No image is ever stored in PostgreSQL: the database holds only the **object path
 | `shop-images` | yes (shop front) | any **vendor-role** account (needed during registration, before approval), own folder only | `<vendor_user_id>/<random>.<ext>` | Vendor app uploads; admin vendor review + customer provider cards display |
 | `service-images` | **no** (private) | **customer accounts only**, own folder only | `<customer_id>/<booking_id>/<random>.<ext>` | Customer app uploads cycle photos; shown through short-lived **signed URLs** |
 | `banners` | yes | **admins only** | `banners/<uuid>.<ext>`, `categories/<uuid>.<ext>`, `service-categories/<uuid>.<ext>` | Admin console uploads; Customer app displays banners and category images |
-| `avatars` | **no** (private) | the owner, own folder only (+ admin read) | `<user_id>/<name>.<ext>` | Bucket and policy exist; **no app uploads avatars yet** (the profile has an `avatar_path` field but no UI) |
+| `avatars` | **no** (private) | the owner, own folder only (+ admin read) | `<user_id>/<name>.<ext>` | Uploaded by the customer app, vendor app and admin web (Account settings); the path is saved with `PUT /profiles/me` and shown through a short-lived signed URL |
 
 Read access to private photos (`service-images`): the owning customer; the vendor of that booking (the policy checks the booking id in the path against `service_bookings.vendor_id`, so a vendor never sees photos of other vendors' bookings); admins. Everybody else, including anonymous users, sees nothing.
 
@@ -35,7 +35,6 @@ Read access to private photos (`service-images`): the owning customer; the vendo
 
 ## Open points
 
-* Profile photos (`avatars`) have a bucket but no screen.
 * Orphaned objects (a banner replaced or deleted) stay in the bucket until a cleanup job is added.
 * Image resizing / thumbnails are not implemented (full-size files are served).
 

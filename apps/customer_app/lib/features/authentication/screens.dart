@@ -8,6 +8,7 @@ import '../../core/auth/auth_controller.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/providers.dart';
 import '../../core/widgets/common.dart';
+import '../../core/widgets/google_button.dart';
 
 class _AuthScaffold extends StatelessWidget {
   const _AuthScaffold({
@@ -44,7 +45,7 @@ class _AuthScaffold extends StatelessWidget {
                 const SizedBox(height: 20),
                 Text(title, style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 6),
-                Text(subtitle, style: const TextStyle(color: AppColors.muted)),
+                Text(subtitle, style: TextStyle(color: context.palette.muted)),
                 const SizedBox(height: 24),
                 child,
               ],
@@ -178,6 +179,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
     try {
       await action();
+    } on AuthCancelled {
+      // the user dismissed the Google chooser: not an error
     } on AuthFailure catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (e) {
@@ -186,6 +189,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) setState(() => _busy = false);
     }
   }
+
+  Future<void> _google() =>
+      _run(() => ref.read(authControllerProvider.notifier).signInWithGoogle());
 
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
@@ -326,6 +332,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           : 'Sign in',
                     ),
             ),
+            if (AppConfig.googleSignInSupported) ...[
+              const OrDivider(),
+              GoogleSignInButton(onPressed: _busy ? null : _google),
+            ],
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -392,6 +402,27 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         );
         context.go('/login');
       }
+    } on AuthFailure catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (e) {
+      if (mounted) setState(() => _error = errorText(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Google creates the account on first use and signs in on later uses, so "sign up" and "sign in" are the same call.
+  Future<void> _google() async {
+    if (_busy) return;
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await ref.read(authControllerProvider.notifier).signInWithGoogle();
+    } on AuthCancelled {
+      // the user dismissed the Google chooser: not an error
     } on AuthFailure catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (e) {
@@ -488,6 +519,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   )
                 : const Text('Create account'),
           ),
+          if (AppConfig.googleSignInSupported) ...[
+            const OrDivider(),
+            GoogleSignInButton(
+              label: 'Sign up with Google',
+              onPressed: _busy ? null : _google,
+            ),
+          ],
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -564,9 +602,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Enter your e-mail and we will send you a reset link.',
-                    style: TextStyle(color: AppColors.muted),
+                    style: TextStyle(color: context.palette.muted),
                   ),
                   const SizedBox(height: 20),
                   if (_error != null) _Banner(_error!, AppColors.danger),

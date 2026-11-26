@@ -53,6 +53,39 @@ class FakeAuthService implements AuthService {
   @override
   Future<void> sendPasswordReset(String email) async {}
 
+  /// Google sign-in: set [googleOutcome] to `AuthCancelled()` / `AuthFailure(...)` to make it fail; otherwise it signs in.
+  Exception? googleOutcome;
+  String? googleName = 'Gita Google';
+  int googleCalls = 0;
+  @override
+  Future<GoogleSignInResult> signInWithGoogle() async {
+    googleCalls++;
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    if (googleOutcome != null) throw googleOutcome!;
+    _token = 'tok-1';
+    _changes.add(true);
+    return GoogleSignInResult(displayName: googleName);
+  }
+
+  /// Records password changes; `currentPassword` is what the "account" accepts, anything else fails like Supabase's re-authentication.
+  String currentPassword = 'OldPass123';
+  String? failChangeWith;
+  final passwordChanges = <String>[];
+  @override
+  Future<void> changePassword({
+    required String email,
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    if (failChangeWith != null) throw AuthFailure(failChangeWith!);
+    if (currentPassword != this.currentPassword) {
+      throw AuthFailure('Your current password is incorrect.');
+    }
+    this.currentPassword = newPassword;
+    passwordChanges.add(newPassword);
+  }
+
   /// Mimics gotrue when the server cannot be reached: the device session is removed first, then the revoke request throws.
   bool signOutThrows = false;
 

@@ -116,15 +116,15 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> {
                         ),
                         Text(
                           '${b.vendorName ?? ''} · ${b.number}',
-                          style: const TextStyle(color: AppColors.muted),
+                          style: TextStyle(color: context.palette.muted),
                         ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.event_outlined,
                               size: 16,
-                              color: AppColors.muted,
+                              color: context.palette.muted,
                             ),
                             const SizedBox(width: 4),
                             Expanded(
@@ -139,21 +139,21 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> {
                           ],
                         ),
                         if (b.needsPickup)
-                          const Padding(
+                          Padding(
                             padding: EdgeInsets.only(top: 6),
                             child: Row(
                               children: [
                                 Icon(
                                   Icons.local_shipping_outlined,
                                   size: 16,
-                                  color: AppColors.primary,
+                                  color: context.palette.primary,
                                 ),
                                 SizedBox(width: 4),
                                 Text(
                                   'Doorstep pickup & drop-off',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: AppColors.primary,
+                                    color: context.palette.primary,
                                   ),
                                 ),
                               ],
@@ -286,7 +286,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                 ),
                 Text(
                   '${s.number}${b.categoryName != null ? ' · ${b.categoryName}' : ''}',
-                  style: const TextStyle(color: AppColors.muted),
+                  style: TextStyle(color: context.palette.muted),
                 ),
                 if (s.status == 'rejected')
                   _Banner(
@@ -368,9 +368,9 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                         if ((b.cycle['details'] ?? '').toString().isNotEmpty)
                           InfoRow('Details', '${b.cycle['details']}'),
                         const SizedBox(height: 4),
-                        const Text(
+                        Text(
                           'Problem described',
-                          style: TextStyle(color: AppColors.muted),
+                          style: TextStyle(color: context.palette.muted),
                         ),
                         Text(b.issue),
                         if (b.images.isNotEmpty) ...[
@@ -454,8 +454,8 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                           b.pricing.logisticsConfigured == false
                               ? 'Pickup/drop-off charges are not configured yet (shown as ₹0). Nothing is charged in the app — the provider settles payment with you.'
                               : 'Nothing is charged in the app — the provider settles payment with you.',
-                          style: const TextStyle(
-                            color: AppColors.muted,
+                          style: TextStyle(
+                            color: context.palette.muted,
                             fontSize: 12,
                           ),
                         ),
@@ -473,9 +473,9 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                   for (final n in b.notes)
                     Card(
                       child: ListTile(
-                        leading: const Icon(
+                        leading: Icon(
                           Icons.sticky_note_2_outlined,
-                          color: AppColors.primary,
+                          color: context.palette.primary,
                         ),
                         title: Text(n.note),
                         subtitle: Text(dateTime(n.at)),
@@ -516,11 +516,14 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                       'rejected',
                       'completed',
                     }.contains(s.status))
-                  const Center(
+                  Center(
                     child: Text(
                       'The cycle is already with the provider, so this booking can no longer be cancelled here. Contact support if you need help.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.muted, fontSize: 12),
+                      style: TextStyle(
+                        color: context.palette.muted,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 TextButton.icon(
@@ -598,16 +601,18 @@ class _RepairProgress extends StatelessWidget {
                                   : Icons.radio_button_unchecked),
                         size: 22,
                         color: ended
-                            ? AppColors.line
-                            : (i <= idx ? AppColors.primary : AppColors.line),
+                            ? context.palette.line
+                            : (i <= idx
+                                  ? context.palette.primary
+                                  : context.palette.line),
                       ),
                       if (i < steps.length - 1)
                         Container(
                           width: 2,
                           height: 24,
                           color: !ended && i < idx
-                              ? AppColors.primary
-                              : AppColors.line,
+                              ? context.palette.primary
+                              : context.palette.line,
                         ),
                     ],
                   ),
@@ -621,8 +626,8 @@ class _RepairProgress extends StatelessWidget {
                             ? FontWeight.w800
                             : FontWeight.w500,
                         color: !ended && i <= idx
-                            ? AppColors.ink
-                            : AppColors.muted,
+                            ? context.palette.ink
+                            : context.palette.muted,
                       ),
                     ),
                   ),
@@ -674,8 +679,8 @@ class _PickupCard extends StatelessWidget {
                       height: 6,
                       decoration: BoxDecoration(
                         color: !problem && i <= idx
-                            ? AppColors.primary
-                            : AppColors.line,
+                            ? context.palette.primary
+                            : context.palette.line,
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),
@@ -709,7 +714,7 @@ class _PickupCard extends StatelessWidget {
           ),
         Text(
           address,
-          style: const TextStyle(color: AppColors.muted, fontSize: 12),
+          style: TextStyle(color: context.palette.muted, fontSize: 12),
         ),
       ],
     );
@@ -789,8 +794,8 @@ class _History extends StatelessWidget {
                             margin: const EdgeInsets.only(top: 5),
                             width: 8,
                             height: 8,
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
+                            decoration: BoxDecoration(
+                              color: context.palette.primary,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -807,16 +812,16 @@ class _History extends StatelessWidget {
                                 ),
                                 Text(
                                   dateTime(e.at),
-                                  style: const TextStyle(
-                                    color: AppColors.muted,
+                                  style: TextStyle(
+                                    color: context.palette.muted,
                                     fontSize: 12,
                                   ),
                                 ),
                                 if ((e.note ?? '').isNotEmpty)
                                   Text(
                                     e.note!,
-                                    style: const TextStyle(
-                                      color: AppColors.muted,
+                                    style: TextStyle(
+                                      color: context.palette.muted,
                                       fontSize: 12,
                                     ),
                                   ),

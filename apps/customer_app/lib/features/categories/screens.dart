@@ -69,7 +69,7 @@ class CategoriesScreen extends ConsumerWidget {
                                       : Icon(
                                           kindIcon(c.kind),
                                           size: 52,
-                                          color: AppColors.primary,
+                                          color: context.palette.primary,
                                         ),
                                 ),
                               ),
@@ -80,8 +80,8 @@ class CategoriesScreen extends ConsumerWidget {
                               if (c.productCount != null)
                                 Text(
                                   '${c.productCount} items',
-                                  style: const TextStyle(
-                                    color: AppColors.muted,
+                                  style: TextStyle(
+                                    color: context.palette.muted,
                                     fontSize: 12,
                                   ),
                                 ),

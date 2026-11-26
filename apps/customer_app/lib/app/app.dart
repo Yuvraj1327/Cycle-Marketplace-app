@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/push/push_controller.dart';
+import '../features/settings/theme_mode.dart';
 import 'router.dart';
 import 'theme.dart';
 
@@ -16,6 +17,8 @@ class CustomerApp extends ConsumerWidget {
       title: 'My Cycle Clinic',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
+      darkTheme: buildDarkTheme(),
+      themeMode: ref.watch(themeModeProvider),
       scaffoldMessengerKey: pushMessengerKey,
       routerConfig: ref.watch(routerProvider),
     );

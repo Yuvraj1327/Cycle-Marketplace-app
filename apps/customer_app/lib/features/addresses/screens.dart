@@ -73,7 +73,7 @@ class AddressCard extends ConsumerWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: selected ? AppColors.primary : AppColors.line,
+          color: selected ? context.palette.primary : context.palette.line,
           width: selected ? 2 : 1,
         ),
       ),
@@ -91,7 +91,7 @@ class AddressCard extends ConsumerWidget {
                     a.label?.toLowerCase() == 'work'
                         ? Icons.work_outline
                         : Icons.home_outlined,
-                    color: AppColors.primary,
+                    color: context.palette.primary,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -158,11 +158,11 @@ class AddressCard extends ConsumerWidget {
                 '${a.recipientName} · ${a.phone}',
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
-              Text(a.oneLine, style: const TextStyle(color: AppColors.muted)),
+              Text(a.oneLine, style: TextStyle(color: context.palette.muted)),
               if ((a.landmark ?? '').isNotEmpty)
                 Text(
                   'Landmark: ${a.landmark}',
-                  style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                  style: TextStyle(color: context.palette.muted, fontSize: 12),
                 ),
               const SizedBox(height: 6),
               Text(
@@ -171,8 +171,8 @@ class AddressCard extends ConsumerWidget {
                   'pickup' => 'Pickup only',
                   _ => 'Delivery & pickup',
                 },
-                style: const TextStyle(
-                  color: AppColors.primary,
+                style: TextStyle(
+                  color: context.palette.primary,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),

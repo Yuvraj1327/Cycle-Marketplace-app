@@ -1,0 +1,4 @@
+// Copy to Google.xcconfig (git-ignored) and fill in. Public identifier, not a secret.
+// The reversed client ID of the iOS OAuth client, i.e. GOOGLE_IOS_CLIENT_ID "123-abc.apps.googleusercontent.com"
+// becomes "com.googleusercontent.apps.123-abc".
+GOOGLE_IOS_REVERSED_CLIENT_ID = com.googleusercontent.apps.REPLACE_WITH_IOS_CLIENT_ID_PREFIX
